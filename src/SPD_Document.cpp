@@ -20,13 +20,40 @@ BEGIN_NS_SPD
 ////////////////////////////////
 
 Document::Document()
+	: m_zip( nullptr )
 {
 	 
 }
 
 Document::~Document()
 {
+	Close();
+}
 
+int Document::Open( const char * fname )
+{
+	if( m_zip != nullptr )
+		Close();
+
+	int err = 0;
+	m_zip = zip_open( fname, 0, &err );
+	if( err < 0 )
+		return 0;
+	return 0;
+}
+
+int Document::Save( const char * fname )
+{
+	return -1;
+}
+
+int Document::Close()
+{
+	if( m_zip != nullptr ) {
+		zip_discard( m_zip ), m_zip = nullptr;
+	}
+	m_doc.reset();
+	return 0;
 }
 
 ////////////////////////////////

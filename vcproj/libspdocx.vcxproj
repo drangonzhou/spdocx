@@ -19,11 +19,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\SPD_Def.h" />
+    <ClInclude Include="..\src\SPD_Common.h" />
     <ClInclude Include="..\src\SPD_Document.h" />
     <ClInclude Include="..\src\SPD_Element.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\SPD_Common.cpp" />
     <ClCompile Include="..\src\SPD_Document.cpp" />
     <ClCompile Include="..\src\SPD_Element.cpp" />
   </ItemGroup>

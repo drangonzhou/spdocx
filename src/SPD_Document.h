@@ -17,7 +17,10 @@
 #ifndef INCLUDED_SPD_DOCUMENT_H
 #define INCLUDED_SPD_DOCUMENT_H
 
-#include "SPD_Def.h"
+#include "SPD_Common.h"
+
+#include "zip.h"
+#include "pugixml.hpp"
 
 BEGIN_NS_SPD
 ////////////////////////////////
@@ -27,6 +30,14 @@ class SPD_API Document
 public:
 	Document();
 	~Document();
+
+	int Open( const char * fname );
+	int Save( const char * fname = NULL );
+	int Close();
+
+private:
+	zip_t * m_zip;
+	pugi::xml_document m_doc;
 };
 
 ////////////////////////////////

@@ -17,6 +17,13 @@
 #ifndef INCLUDED_SPD_ELEMENT_H
 #define INCLUDED_SPD_ELEMENT_H
 
+#include "SPD_Common.h"
 
+BEGIN_NS_SPD
+////////////////////////////////
+
+
+////////////////////////////////
+END_NS_SPD
 
 #endif // INCLUDED_SPD_ELEMENT_H

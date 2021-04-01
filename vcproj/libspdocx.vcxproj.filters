@@ -15,13 +15,13 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\SPD_Def.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\SPD_Document.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="..\src\SPD_Element.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\SPD_Common.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -30,6 +30,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="..\src\SPD_Element.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\SPD_Common.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

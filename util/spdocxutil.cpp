@@ -24,4 +24,8 @@ int main( int argc, char * argv[] )
 {
     Document doc;
     std::cout << "Hello World!\n";
+
+    SPD_PR_ERR( "hello %d", 5 );
+
+    return 0;
 }
