@@ -22,8 +22,28 @@
 #include "zip.h"
 #include "pugixml.hpp"
 
+#include <string>
+#include <map>
+
 BEGIN_NS_SPD
 ////////////////////////////////
+
+class StyleLite
+{
+public:
+	std::string m_id;
+	std::string m_type;  // paragraph, table, character ...
+	std::string m_name;
+};
+
+class Relationship
+{
+public:
+	std::string m_id;
+	std::string m_type;
+	std::string m_target;
+	std::string m_targetMode;  // External
+};
 
 class SPD_API Document
 {
@@ -35,9 +55,20 @@ public:
 	int Save( const char * fname = NULL );
 	int Close();
 
+protected:
+	int load_style();
+	int load_rela();
+
+protected:
+	int read_zip_xml( const char * zip_fname, pugi::xml_document * doc );
+
 private:
+	friend class SPDDebug;
 	zip_t * m_zip;
 	pugi::xml_document m_doc;
+
+	std::map< std::string, StyleLite > m_style;
+	std::map< std::string, Relationship > m_rela;
 };
 
 ////////////////////////////////

@@ -20,12 +20,55 @@
 
 using namespace spd;
 
+BEGIN_NS_SPD
+////////////////////////////////
+
+class SPDDebug
+{
+public:
+    static void DumpDocument( Document * doc );
+};
+
+void SPDDebug::DumpDocument( Document * doc )
+{
+    printf( "[doc] %p\n", doc );
+    printf( "  [zip] %p\n", doc->m_zip );
+    for( auto it = doc->m_style.begin(); it != doc->m_style.end(); ++it ) {
+        printf( "  [style] id [%s], name [%s], type [%s]\n", 
+            it->second.m_id.c_str(), it->second.m_name.c_str(), it->second.m_type.c_str() );
+    }
+    for( auto it = doc->m_rela.begin(); it != doc->m_rela.end(); ++it ) {
+        printf( "  [rela] id [%s], type [%s], target [%s], targetMode [%s]\n", 
+            it->second.m_id.c_str(), it->second.m_type.c_str(), it->second.m_target.c_str(), it->second.m_targetMode.c_str() );
+    }
+    return;
+}
+
+////////////////////////////////
+END_NS_SPD
+
 int main( int argc, char * argv[] )
 {
-    Document doc;
-    std::cout << "Hello World!\n";
+    if( argc < 2 ) {
+        printf( "Usage: %s <docx file>\n", argv[0] );
+        return -1;
+    }
 
-    SPD_PR_ERR( "hello %d", 5 );
+    spd::SPD_SetLogFuncLevel( nullptr, SPD_LOG_LEVEL_DEBUG );
+
+    const char * fname = argv[1];
+    int ret;
+    Document doc;
+    ret = doc.Open( fname );
+    if( ret < 0 ) {
+        printf( "doc.Open() ret %d\n", ret );
+    }
+
+    SPDDebug::DumpDocument( &doc );
+
+    doc.Close();
+
+    SPD_PR_INFO( "hello %d", 5 );
 
     return 0;
 }
