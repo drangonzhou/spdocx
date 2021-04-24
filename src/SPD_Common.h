@@ -18,6 +18,7 @@
 #define INCLUDED_SPD_COMMON_H
 
 #include <stdarg.h>
+#include <atomic>
 
 #ifdef _WIN32
 #ifdef LIBSPDOCX_EXPORTS
@@ -35,6 +36,8 @@
 BEGIN_NS_SPD
 ////////////////////////////////
 
+// <1> Error Code
+
 enum SPD_Error_t 
 {
 	SPD_ERR_OK = 0,
@@ -44,6 +47,9 @@ enum SPD_Error_t
 
 	SPD_ERR_MIN
 };
+
+
+// <2> Log
 
 enum {
 	SPD_LOG_LEVEL_DEBUG = 2,
@@ -69,6 +75,63 @@ SPD_API void SPD_PrintLog( int level, const char * file, int line, const char * 
 typedef void ( *SPD_LogFunc_t )( const char * log_msg );
 
 SPD_API int SPD_SetLogFuncLevel( SPD_LogFunc_t func, int level );
+
+
+// <3> Reference Object
+
+class SPD_API RefObj
+{
+protected:
+	RefObj() : m_val( 0 ) { }
+	virtual ~RefObj() { }
+
+protected:
+	template< class T > friend class RefPtr;
+	void IncRef() { m_val.fetch_add( 1 ); return; }
+	void DecRef()
+	{
+		int ret = m_val.fetch_sub( 1 );
+		if( ret == 1 )
+			delete this;
+		return;
+	}
+
+private:
+	std::atomic_int m_val;
+};
+
+template<class T> class RefPtr
+{
+public:
+	RefPtr( T * obj ) { m_obj = obj; if( m_obj != nullptr ) m_obj->IncRef(); }
+	RefPtr( const RefPtr & obj ) { m_obj = obj.m_obj; if( m_obj != nullptr ) m_obj->IncRef(); }
+	~RefPtr() { if( m_obj != nullptr ) m_obj->DecRef(), m_obj = nullptr; }
+
+	RefPtr & operator = ( const RefPtr & obj )
+	{
+		if( &obj == this )
+			return *this;
+		if( m_obj != nullptr )
+			m_obj->DecRef();
+		m_obj = obj.m_obj;
+		if( m_obj != nullptr ) m_obj->IncRef();
+		return *this;
+	}
+
+	inline T * operator -> () { return m_obj; }
+
+	inline operator bool() const { return m_obj != nullptr; }
+	inline bool IsValid() const { return m_obj != nullptr; }
+
+	template< class T2 >
+	inline RefPtr<T2> Move() { RefPtr<T2> ptr( static_cast<T2 *>( m_obj ) ); if( m_obj != nullptr ) m_obj->DecRef(), m_obj = nullptr; return ptr; }
+
+private:
+	T * m_obj;
+};
+
+// DLL export template 
+template SPD_API class RefPtr<RefObj>;
 
 ////////////////////////////////
 END_NS_SPD

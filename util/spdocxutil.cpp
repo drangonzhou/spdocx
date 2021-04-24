@@ -18,8 +18,6 @@
 
 #include <iostream>
 
-using namespace spd;
-
 BEGIN_NS_SPD
 ////////////////////////////////
 
@@ -47,6 +45,19 @@ void SPDDebug::DumpDocument( Document * doc )
 ////////////////////////////////
 END_NS_SPD
 
+using namespace spd;
+
+static void dump_element( RefPtr<Element> ele, int level )
+{
+    static const char pre[16] = "               ";
+    const char * p = ( level >= 15 ) ? pre : pre + 15 - level;
+    for( ; ele->GetType() != ElementType::ELEMENT_TYPE_INVALID; ele = ele->GetNext() ) {
+        printf( "%s[%s] (%d)\n", p, ele->GetTag(), (int)ele->GetType() );
+        dump_element( ele->GetFirstChild(), level + 1 );
+    }
+    return;
+}
+
 int main( int argc, char * argv[] )
 {
     if( argc < 2 ) {
@@ -65,6 +76,13 @@ int main( int argc, char * argv[] )
     }
 
     SPDDebug::DumpDocument( &doc );
+
+    RefPtr<Element> ele = doc.GetFirstChild();
+
+    RefPtr<Element> ele2 = ele->GetParent();
+    printf( "parent is %d\n", (int)ele2->GetType() );
+
+    dump_element( ele, 0 );
 
     doc.Close();
 

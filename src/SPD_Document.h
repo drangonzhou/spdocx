@@ -18,6 +18,7 @@
 #define INCLUDED_SPD_DOCUMENT_H
 
 #include "SPD_Common.h"
+#include "SPD_Element.h"
 
 #include "zip.h"
 #include "pugixml.hpp"
@@ -54,6 +55,9 @@ public:
 	int Open( const char * fname );
 	int Save( const char * fname = NULL );
 	int Close();
+
+	// Paragraph or Table, or other Element ( Section )
+	RefPtr<Element> GetFirstChild();
 
 protected:
 	int load_style();

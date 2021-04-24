@@ -20,78 +20,91 @@
 #include "SPD_Common.h"
 
 #include <pugixml.hpp>
-#include <atomic>
 
 BEGIN_NS_SPD
 ////////////////////////////////
 
-class RefObj
-{
-protected:
-	RefObj() : m_val(0) { }
-	virtual ~RefObj() { }
-	
-protected:
-	template< class T > friend class RefPtr;
-	void IncRef() { m_val.fetch_add( 1 ); return; }
-	void DecRef() 
-	{ 
-		int ret = m_val.fetch_sub( 1 ); 
-		if( ret == 1 ) 
-			delete this;
-		return;
-	}
-
-private:
-	std::atomic_int m_val;
-};
-
-template<class T> class RefPtr
-{
-public:
-	RefPtr( T * obj ) { m_obj = obj; m_obj->IncRef(); }
-	RefPtr( const RefPtr & obj ) { m_obj = obj.m_obj; m_obj->IncRef(); }
-	~RefPtr() { m_obj->DecRef(); m_obj = nullptr; }
-
-	RefPtr & operator = ( const RefPtr & obj ) 
-	{
-		if( &obj == this )
-			return *this;
-		if( m_obj != nullptr )
-			m_obj->DecRef();
-		m_obj = obj.m_obj;
-		m_obj->IncRef();
-		return * this;
-	}
-
-	T * operator -> () { return m_obj; }
-
-private:
-	T * m_obj;
-};
-
 class Document;
 
-enum ElementType
+enum class ElementType
 {
+	ELEMENT_TYPE_INVALID,  // not valid
+	ELEMENT_TYPE_UNKNOWN,  // unknown tag
+
 	ELEMENT_TYPE_PARAGRAPH,
+	ELEMENT_TYPE_RUN,
+	ELEMENT_TYPE_HYPERLINK,
+
 	ELEMENT_TYPE_TABLE,
+	ELEMENT_TYPE_TABLE_TR,
+	ELEMENT_TYPE_TABLE_TC,
+
+	ELEMENT_TYPE_SECTION,
+
+	ELEMENT_TYPE_BOOKMARK_START,
+	ELEMENT_TYPE_BOOKMARK_END,
+	ELEMENT_TYPE_COMMENT_START,
+	ELEMENT_TYPE_COMMENT_END,
+	ELEMENT_TYPE_RUN_COMMENT_REF,
 
 	ELEMENT_TYPE_MAX
 };
 
-class Element : public RefObj
+class SPD_API Element : public RefObj
 {
-protected:
-	Element( Document * doc, pugi::xml_node node );
+public:
+	Element( ElementType type, Document * doc, pugi::xml_node nd );
 	virtual ~Element();
 
-public:
-	ElementType Type();
+	static RefPtr<Element> CreateElement( Document * doc, pugi::xml_node nd = pugi::xml_node() );
+
+	ElementType GetType() const { return m_type; }
+	const char * GetTag() const { return m_nd.name(); }
+
+	RefPtr<Element> GetParent();
+	RefPtr<Element> GetPrev();
+	RefPtr<Element> GetNext();
+	RefPtr<Element> GetFirstChild();
+
+private:
+	friend class SPDDebug;
+	ElementType m_type;
 
 protected:
-	ElementType m_type;
+	Document * m_doc;
+	pugi::xml_node m_nd;
 };
+
+class SPD_API Paragraph : public Element
+{
+public:
+	Paragraph( Document * doc, pugi::xml_node nd );
+	virtual ~Paragraph();
+	// TODO : func
+};
+
+class SPD_API Run : public Element
+{
+public:
+	Run( Document * doc, pugi::xml_node nd );
+	virtual ~Run();
+	// TODO : func
+};
+
+/*
+class SPD_API Table : public Element
+{
+public:
+	Table( Document * doc, pugi::xml_node nd );
+	virtual ~Table();
+};
+//*/
+
+// DLL export template 
+template SPD_API class RefPtr<Element>;
+template SPD_API class RefPtr<Paragraph>;
+template SPD_API class RefPtr<Run>;
+//template SPD_API class RefPtr<Table>;
 
 ////////////////////////////////
 END_NS_SPD

@@ -19,6 +19,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\3rdparty\pugiconfig.hpp" />
+    <ClInclude Include="..\3rdparty\pugixml.hpp" />
+    <ClInclude Include="..\3rdparty\zconf.h" />
+    <ClInclude Include="..\3rdparty\zip.h" />
+    <ClInclude Include="..\3rdparty\zipconf.h" />
+    <ClInclude Include="..\3rdparty\zlib.h" />
     <ClInclude Include="..\src\SPD_Common.h" />
     <ClInclude Include="..\src\SPD_Document.h" />
     <ClInclude Include="..\src\SPD_Element.h" />

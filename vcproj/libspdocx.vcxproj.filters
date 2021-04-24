@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="3rdParty">
+      <UniqueIdentifier>{ab6e63f0-2e84-4845-9ccc-bf123ba66100}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\SPD_Document.h">
@@ -23,6 +26,24 @@
     </ClInclude>
     <ClInclude Include="..\src\SPD_Common.h">
       <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\3rdparty\pugiconfig.hpp">
+      <Filter>3rdParty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\3rdparty\pugixml.hpp">
+      <Filter>3rdParty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\3rdparty\zconf.h">
+      <Filter>3rdParty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\3rdparty\zip.h">
+      <Filter>3rdParty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\3rdparty\zipconf.h">
+      <Filter>3rdParty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\3rdparty\zlib.h">
+      <Filter>3rdParty</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -106,7 +106,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>libspdocx.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libspdocxd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>../bin</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -140,7 +140,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>libspdocx.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libspdocxd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>../bin</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>

@@ -66,6 +66,8 @@ int Document::Open( const char * fname )
 
 int Document::Save( const char * fname )
 {
+	// TODO : need imp
+
 	return -1;
 }
 
@@ -186,6 +188,13 @@ int Document::read_zip_xml( const char * zip_fname, pugi::xml_document * doc )
 	}
 
 	return SPD_ERR_OK;
+}
+
+RefPtr<Element> Document::GetFirstChild()
+{
+	// <w:document><w:body><w:p>...</w:p>...</w:body></w:document>
+	pugi::xml_node nd = m_doc.document_element().first_child().first_child();
+	return Element::CreateElement( this, nd );
 }
 
 ////////////////////////////////
