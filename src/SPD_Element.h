@@ -20,6 +20,7 @@
 #include "SPD_Common.h"
 
 #include <pugixml.hpp>
+#include <string>
 
 BEGIN_NS_SPD
 ////////////////////////////////
@@ -53,18 +54,23 @@ enum class ElementType
 class SPD_API Element : public RefObj
 {
 public:
+	static RefPtr<Element> CreateElement( Document * doc, pugi::xml_node nd = pugi::xml_node() );
+
+public:
 	Element( ElementType type, Document * doc, pugi::xml_node nd );
 	virtual ~Element();
+	Element( const Element & ele ) = delete;
+	Element & operator = ( const Element & ele ) = delete;
 
-	static RefPtr<Element> CreateElement( Document * doc, pugi::xml_node nd = pugi::xml_node() );
+	virtual void ResetCache() { return; }
 
 	ElementType GetType() const { return m_type; }
 	const char * GetTag() const { return m_nd.name(); }
 
-	RefPtr<Element> GetParent();
-	RefPtr<Element> GetPrev();
-	RefPtr<Element> GetNext();
-	RefPtr<Element> GetFirstChild();
+	RefPtr<Element> GetParent() const;
+	RefPtr<Element> GetPrev() const;
+	RefPtr<Element> GetNext() const;
+	RefPtr<Element> GetFirstChild() const;
 
 private:
 	friend class SPDDebug;
@@ -80,7 +86,36 @@ class SPD_API Paragraph : public Element
 public:
 	Paragraph( Document * doc, pugi::xml_node nd );
 	virtual ~Paragraph();
-	// TODO : func
+
+	virtual void ResetCache();
+
+	const char * GetStyleName(); // style name, ex : heading 1
+	const char * GetText();
+
+protected:
+	const char * m_style_name;
+	std::string * m_text;
+};
+
+class SPD_API Hyperlink : public Element
+{
+public:
+	Hyperlink( Document * doc, pugi::xml_node nd );
+	virtual ~Hyperlink();
+
+	virtual void ResetCache();
+
+	const char * GetAnchor();     // local bookmark link
+	const char * GetLinkType();   // hyperlink, type, ex : image -> http://schema.../image
+	const char * GetTargetMode(); // hyperlink mode, internal : "", external : "External"
+	const char * GetTarget();     // hyperlink target, internal : "media/image1.png", external : "http://xxx.org"
+	const char * GetText();
+
+protected:
+	const char * m_link_type;
+	const char * m_target;
+	const char * m_targetMode;
+	std::string * m_text;
 };
 
 class SPD_API Run : public Element
@@ -88,7 +123,20 @@ class SPD_API Run : public Element
 public:
 	Run( Document * doc, pugi::xml_node nd );
 	virtual ~Run();
-	// TODO : func
+
+	virtual void ResetCache();
+
+	const char * GetColor();     // font front color, ex : 00B0F0
+	const char * GetHighline();  // font bg color, ex : yellow
+	bool GetBold();              // font bold 
+	bool GetItalic();            // font italic
+	const char * GetUnderline(); // font underline, ex : "", "singal", "double"
+	bool GetStrike();            // font deleted with strike
+	bool GetDoubleStrike();      // font deleted with double strike
+	const char * GetText();
+
+protected:
+	std::string * m_text;
 };
 
 /*
@@ -103,6 +151,7 @@ public:
 // DLL export template 
 template SPD_API class RefPtr<Element>;
 template SPD_API class RefPtr<Paragraph>;
+template SPD_API class RefPtr<Hyperlink>;
 template SPD_API class RefPtr<Run>;
 //template SPD_API class RefPtr<Table>;
 

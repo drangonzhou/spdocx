@@ -114,7 +114,8 @@ public:
 		if( m_obj != nullptr )
 			m_obj->DecRef();
 		m_obj = obj.m_obj;
-		if( m_obj != nullptr ) m_obj->IncRef();
+		if( m_obj != nullptr ) 
+			m_obj->IncRef();
 		return *this;
 	}
 
@@ -124,9 +125,22 @@ public:
 	inline bool IsValid() const { return m_obj != nullptr; }
 
 	template< class T2 >
-	inline RefPtr<T2> Move() { RefPtr<T2> ptr( static_cast<T2 *>( m_obj ) ); if( m_obj != nullptr ) m_obj->DecRef(), m_obj = nullptr; return ptr; }
+	RefPtr( const RefPtr<T2> & obj ) { m_obj = static_cast<T *>( obj.m_obj ); if( m_obj != nullptr ) m_obj->IncRef();	}
+	template< class T2 >
+	RefPtr & operator = ( const RefPtr<T2> & obj )
+	{
+		if( &obj == this )
+			return *this;
+		if( m_obj != nullptr )
+			m_obj->DecRef();
+		m_obj = static_cast<T *>( obj.m_obj );
+		if( m_obj != nullptr ) 
+			m_obj->IncRef();
+		return *this;
+	}
 
 private:
+	template< class T2 > friend class RefPtr;
 	T * m_obj;
 };
 

@@ -197,5 +197,25 @@ RefPtr<Element> Document::GetFirstChild()
 	return Element::CreateElement( this, nd );
 }
 
+const char * Document::get_style_name( const char * id )
+{
+	if( id == nullptr || id[0] == '\0' )
+		return "";
+	auto it = m_style.find( std::string( id ) );
+	if( it == m_style.end() )
+		return "";
+	return it->second.m_name.c_str();
+}
+
+const Relationship * Document::get_relationship( const char * id )
+{
+	if( id == nullptr || id[0] == '\0' )
+		return nullptr;
+	auto it = m_rela.find( std::string( id ) );
+	if( it == m_rela.end() )
+		return nullptr;
+	return &(it->second);
+}
+
 ////////////////////////////////
 END_NS_SPD

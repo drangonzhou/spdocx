@@ -17,6 +17,7 @@
 #include "SPD_Document.h"
 
 #include <iostream>
+#include <string>
 
 BEGIN_NS_SPD
 ////////////////////////////////
@@ -53,6 +54,19 @@ static void dump_element( RefPtr<Element> ele, int level )
     const char * p = ( level >= 15 ) ? pre : pre + 15 - level;
     for( ; ele->GetType() != ElementType::ELEMENT_TYPE_INVALID; ele = ele->GetNext() ) {
         printf( "%s[%s] (%d)\n", p, ele->GetTag(), (int)ele->GetType() );
+        switch( ele->GetType() )
+        {
+        case ElementType::ELEMENT_TYPE_PARAGRAPH :
+        {
+            RefPtr<Paragraph> par = ele;
+            printf( "<style> [%s]\n", par->GetStyleName() );
+            printf( "<text> [%s]\n", par->GetText() );
+            par->ResetCache();
+        }
+            break;
+        default:
+            break;
+        }
         dump_element( ele->GetFirstChild(), level + 1 );
     }
     return;

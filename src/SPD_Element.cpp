@@ -70,7 +70,7 @@ Element::~Element()
 	m_nd = pugi::xml_node();
 }
 
-RefPtr<Element> Element::GetParent()
+RefPtr<Element> Element::GetParent() const
 {
 	if( m_type == ElementType::ELEMENT_TYPE_INVALID || m_doc == nullptr || m_nd.empty() )
 		return CreateElement( nullptr );
@@ -81,7 +81,7 @@ RefPtr<Element> Element::GetParent()
 	return CreateElement( m_doc, pnd );
 }
 
-RefPtr<Element> Element::GetPrev()
+RefPtr<Element> Element::GetPrev() const
 {
 	if( m_type == ElementType::ELEMENT_TYPE_INVALID || m_doc == nullptr || m_nd.empty() )
 		return CreateElement( nullptr );
@@ -91,7 +91,7 @@ RefPtr<Element> Element::GetPrev()
 	return CreateElement( m_doc, pnd );
 }
 
-RefPtr<Element> Element::GetNext()
+RefPtr<Element> Element::GetNext() const
 {
 	if( m_type == ElementType::ELEMENT_TYPE_INVALID || m_doc == nullptr || m_nd.empty() )
 		return CreateElement( nullptr );
@@ -101,7 +101,7 @@ RefPtr<Element> Element::GetNext()
 	return CreateElement( m_doc, pnd );
 }
 
-RefPtr<Element> Element::GetFirstChild()
+RefPtr<Element> Element::GetFirstChild() const
 {
 	if( m_type == ElementType::ELEMENT_TYPE_INVALID || m_type == ElementType::ELEMENT_TYPE_UNKNOWN || m_doc == nullptr || m_nd.empty() )
 		return CreateElement( nullptr );
@@ -113,23 +113,195 @@ RefPtr<Element> Element::GetFirstChild()
 
 Paragraph::Paragraph( Document * doc, pugi::xml_node nd )
 	: Element( ElementType::ELEMENT_TYPE_PARAGRAPH, doc, nd )
+	, m_style_name( nullptr )
+	, m_text( nullptr )
 {
-	// TODO : parse
+
 }
 
 Paragraph::~Paragraph()
 {
+	ResetCache();
+}
+
+void Paragraph::ResetCache()
+{
+	m_style_name = nullptr;
+	if( m_text != nullptr )
+		delete m_text, m_text = nullptr;
+	return;
+}
+
+const char * Paragraph::GetStyleName()
+{
+	if( m_style_name != nullptr )
+		return m_style_name;
+	m_style_name = "";
+	pugi::xml_attribute attr = m_nd.child( "w:pPr" ).child( "w:pStyle" ).attribute( "w:val" );
+	m_style_name = m_doc->get_style_name( attr.name() );
+	return m_style_name;
+}
+
+const char * Paragraph::GetText()
+{
+	if( m_text != nullptr )
+		return m_text->c_str();
+	m_text = new std::string( "" );
+	for( pugi::xml_node cnd = m_nd.first_child(); !cnd.empty(); cnd = cnd.next_sibling() ) {
+		if( strcmp( cnd.name(), "w:r" ) == 0 ) {
+			m_text->append( cnd.child( "w:t" ).text().get() );
+		}
+		else if( strcmp( cnd.name(), "w:hyperlink" ) == 0 ) {
+			for( pugi::xml_node cnd2 = cnd.first_child(); !cnd2.empty(); cnd2 = cnd2.next_sibling() ) {
+				if( strcmp( cnd2.name(), "w:r" ) == 0 ) {
+					m_text->append( cnd2.child( "w:t" ).text().get() );
+				}
+			}
+		}
+	}
+	return m_text->c_str();
+}
+
+Hyperlink::Hyperlink( Document * doc, pugi::xml_node nd )
+	: Element( ElementType::ELEMENT_TYPE_PARAGRAPH, doc, nd )
+	, m_link_type( nullptr )
+	, m_targetMode( nullptr )
+	, m_target( nullptr )
+	, m_text( nullptr )
+{
+
+}
+
+Hyperlink::~Hyperlink()
+{
+	ResetCache();
+}
+
+void Hyperlink::ResetCache()
+{
+	m_link_type = nullptr;
+	m_targetMode = nullptr;
+	m_target = nullptr;
+	if( m_text != nullptr )
+		delete m_text, m_text = nullptr;
+	return;
+}
+
+const char * Hyperlink::GetAnchor()
+{
+	return m_nd.attribute( "w:anchor" ).value();
+}
+
+const char * Hyperlink::GetLinkType()
+{
+	if( m_link_type != nullptr )
+		return m_link_type;
+	m_link_type = "";
+	const Relationship * rela = m_doc->get_relationship( m_nd.attribute( "r:id" ).value() );
+	if( rela != nullptr ) {
+		m_link_type = rela->m_type.c_str();
+	}
+	return m_link_type;
+}
+
+const char * Hyperlink::GetTargetMode()
+{
+	if( m_targetMode != nullptr )
+		return m_targetMode;
+	m_targetMode = "";
+	const Relationship * rela = m_doc->get_relationship( m_nd.attribute( "r:id" ).value() );
+	if( rela != nullptr ) {
+		m_targetMode = rela->m_targetMode.c_str();
+	}
+	return m_targetMode;
+}
+
+const char * Hyperlink::GetTarget()
+{
+	if( m_target != nullptr )
+		return m_target;
+	m_target = "";
+	const Relationship * rela = m_doc->get_relationship( m_nd.attribute( "r:id" ).value() );
+	if( rela != nullptr ) {
+		m_target = rela->m_target.c_str();
+	}
+	return m_target;
+}
+
+const char * Hyperlink::GetText()
+{
+	if( m_text != nullptr )
+		return m_text->c_str();
+	m_text = new std::string( "" );
+	for( pugi::xml_node cnd = m_nd.first_child(); !cnd.empty(); cnd = cnd.next_sibling() ) {
+		if( strcmp( cnd.name(), "w:r" ) == 0 ) {
+			m_text->append( cnd.child( "w:t" ).text().get() );
+		}
+	}
+	return m_text->c_str();
 }
 
 Run::Run( Document * doc, pugi::xml_node nd )
 	: Element( ElementType::ELEMENT_TYPE_RUN, doc, nd )
+	, m_text( nullptr )
 {
-	// TODO : parse
+	
 }
 
 Run::~Run()
 {
+	ResetCache();
+}
 
+void Run::ResetCache()
+{
+	if( m_text != nullptr )
+		delete m_text, m_text = nullptr;
+	return;
+}
+
+const char * Run::GetColor()
+{
+	return m_nd.child( "w:rPr" ).child( "w:color" ).attribute( "w:val" ).value();
+}
+
+const char * Run::GetHighline()
+{
+	return m_nd.child( "w:rPr" ).child( "w:highlight" ).attribute( "w:val" ).value();
+}
+
+bool Run::GetBold()
+{
+	return !m_nd.child( "w:rPr" ).child( "w:b" ).empty();
+}
+
+bool Run::GetItalic()
+{
+	return !m_nd.child( "w:rPr" ).child( "w:i" ).empty();
+}
+
+const char * Run::GetUnderline()
+{
+	return m_nd.child( "w:rPr" ).child( "w:u" ).attribute( "w:val" ).value();
+}
+
+bool Run::GetStrike()
+{
+	return !m_nd.child( "w:rPr" ).child( "w:strike" ).empty();
+}
+
+bool Run::GetDoubleStrike()
+{
+	return !m_nd.child( "w:rPr" ).child( "w:dstrike" ).empty();
+}
+
+const char * Run::GetText()
+{
+	if( m_text != nullptr )
+		return m_text->c_str();
+	m_text = new std::string( "" );
+	m_text->append( m_nd.child( "w:t" ).text().get() );
+	return m_text->c_str();
 }
 
 ////////////////////////////////

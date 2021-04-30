@@ -66,6 +66,12 @@ protected:
 protected:
 	int read_zip_xml( const char * zip_fname, pugi::xml_document * doc );
 
+protected:
+	friend class Paragraph;
+	friend class Hyperlink;
+	const char * get_style_name( const char * id );
+	const Relationship * get_relationship( const char * id );
+
 private:
 	friend class SPDDebug;
 	zip_t * m_zip;
