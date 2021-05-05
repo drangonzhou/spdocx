@@ -25,22 +25,22 @@ BEGIN_NS_SPD
 class SPDDebug
 {
 public:
-    static void DumpDocument( Document * doc );
+	static void DumpDocument( Document * doc );
 };
 
 void SPDDebug::DumpDocument( Document * doc )
 {
-    printf( "[doc] %p\n", doc );
-    printf( "  [zip] %p\n", doc->m_zip );
-    for( auto it = doc->m_style.begin(); it != doc->m_style.end(); ++it ) {
-        printf( "  [style] id [%s], name [%s], type [%s]\n", 
-            it->second.m_id.c_str(), it->second.m_name.c_str(), it->second.m_type.c_str() );
-    }
-    for( auto it = doc->m_rela.begin(); it != doc->m_rela.end(); ++it ) {
-        printf( "  [rela] id [%s], type [%s], target [%s], targetMode [%s]\n", 
-            it->second.m_id.c_str(), it->second.m_type.c_str(), it->second.m_target.c_str(), it->second.m_targetMode.c_str() );
-    }
-    return;
+	printf( "[doc] %p\n", doc );
+	printf( "  [zip] %p\n", doc->m_zip );
+	for( auto it = doc->m_style.begin(); it != doc->m_style.end(); ++it ) {
+		printf( "  [style] id [%s], name [%s], type [%s]\n", 
+			it->second.m_id.c_str(), it->second.m_name.c_str(), it->second.m_type.c_str() );
+	}
+	for( auto it = doc->m_rela.begin(); it != doc->m_rela.end(); ++it ) {
+		printf( "  [rela] id [%s], type [%s], target [%s], targetMode [%s]\n", 
+			it->second.m_id.c_str(), it->second.m_type.c_str(), it->second.m_target.c_str(), it->second.m_targetMode.c_str() );
+	}
+	return;
 }
 
 ////////////////////////////////
@@ -50,57 +50,103 @@ using namespace spd;
 
 static void dump_element( RefPtr<Element> ele, int level )
 {
-    static const char pre[16] = "               ";
-    const char * p = ( level >= 15 ) ? pre : pre + 15 - level;
-    for( ; ele->GetType() != ElementType::ELEMENT_TYPE_INVALID; ele = ele->GetNext() ) {
-        printf( "%s[%s] (%d)\n", p, ele->GetTag(), (int)ele->GetType() );
-        switch( ele->GetType() )
-        {
-        case ElementType::ELEMENT_TYPE_PARAGRAPH :
-        {
-            RefPtr<Paragraph> par = ele;
-            printf( "<style> [%s]\n", par->GetStyleName() );
-            printf( "<text> [%s]\n", par->GetText() );
-            par->ResetCache();
-        }
-            break;
-        default:
-            break;
-        }
-        dump_element( ele->GetFirstChild(), level + 1 );
-    }
-    return;
+	static const char pre[16] = "               ";
+	const char * p = ( level >= 15 ) ? pre : pre + 15 - level;
+	for( ; ele->GetType() != ElementType::ELEMENT_TYPE_INVALID; ele = ele->GetNext() ) {
+		printf( "%s[%s] (%d)\n", p, ele->GetTag(), (int)ele->GetType() );
+		switch( ele->GetType() )
+		{
+		case ElementType::ELEMENT_TYPE_PARAGRAPH :
+		{
+			RefPtr<Paragraph> par = ele;
+			printf( "<style> [%s]\n", par->GetStyleName() );
+			printf( "<text> [%s]\n", par->GetText() );
+			par->ResetCache();
+		}
+			break;
+		case ElementType::ELEMENT_TYPE_HYPERLINK :
+		{
+			RefPtr<Hyperlink> hlk = ele;
+			printf( "<anchor> [%s]\n", hlk->GetAnchor() );
+			printf( "<linkType> [%s]\n", hlk->GetLinkType() );
+			printf( "<target> mode [%s] : [%s]\n", hlk->GetTargetMode(), hlk->GetTarget() );
+			printf( "<text> [%s]\n", hlk->GetText() );
+			hlk->ResetCache();
+		}
+			break;
+		case ElementType::ELEMENT_TYPE_RUN :
+		{
+			RefPtr<Run> run = ele;
+			printf( "<color> [%s], <hightline> [%s]\n", run->GetColor(), run->GetHighline() );
+			printf( "<bold> [%s], <italic> [%s], <underline> [%s], <strike> [%s], <dstrike> [%s]\n", 
+				run->GetBold() ? "true" : "false",
+				run->GetItalic() ? "true" : "false",
+				run->GetUnderline(), 
+				run->GetStrike() ? "true" : "false",
+				run->GetDoubleStrike() ? "true" : "false" );
+			printf( "<text> [%s]\n", run->GetText() );
+			run->ResetCache();
+		}
+			break;
+		case ElementType::ELEMENT_TYPE_TABLE :
+		{
+			RefPtr<Table> tbl = ele;
+			printf( "<table> Row %d, Col %d, width [", tbl->GetRowNum(), tbl->GetColNum() );
+			for( int i = 0; i < tbl->GetColNum(); ++i ) {
+				if( i != 0 )
+					printf( "," );
+				printf( " %d", tbl->GetColWidth( i ) );
+			}
+			printf( " ]\n" );
+		}
+			break;
+		case ElementType::ELEMENT_TYPE_TABLE_TR :
+			printf( "<table row>\n" );
+			break;
+		case ElementType::ELEMENT_TYPE_TABLE_TC :
+		{
+			RefPtr<TCell> tc = ele;
+			printf( "<table cell> span %d, vmerge %d\n", tc->GetSpanNum(), (int)tc->GetVMergeType() );
+			printf( "<text> [%s]", tc->GetText() );
+		}
+			break;
+		default:
+			break;
+		}
+		dump_element( ele->GetFirstChild(), level + 1 );
+	}
+	return;
 }
 
 int main( int argc, char * argv[] )
 {
-    if( argc < 2 ) {
-        printf( "Usage: %s <docx file>\n", argv[0] );
-        return -1;
-    }
+	if( argc < 2 ) {
+		printf( "Usage: %s <docx file>\n", argv[0] );
+		return -1;
+	}
 
-    spd::SPD_SetLogFuncLevel( nullptr, SPD_LOG_LEVEL_DEBUG );
+	spd::SPD_SetLogFuncLevel( nullptr, SPD_LOG_LEVEL_DEBUG );
 
-    const char * fname = argv[1];
-    int ret;
-    Document doc;
-    ret = doc.Open( fname );
-    if( ret < 0 ) {
-        printf( "doc.Open() ret %d\n", ret );
-    }
+	const char * fname = argv[1];
+	int ret;
+	Document doc;
+	ret = doc.Open( fname );
+	if( ret < 0 ) {
+		printf( "doc.Open() ret %d\n", ret );
+	}
 
-    SPDDebug::DumpDocument( &doc );
+	SPDDebug::DumpDocument( &doc );
 
-    RefPtr<Element> ele = doc.GetFirstChild();
+	RefPtr<Element> ele = doc.GetFirstChild();
 
-    RefPtr<Element> ele2 = ele->GetParent();
-    printf( "parent is %d\n", (int)ele2->GetType() );
+	RefPtr<Element> ele2 = ele->GetParent();
+	printf( "parent is %d\n", (int)ele2->GetType() );
 
-    dump_element( ele, 0 );
+	dump_element( ele, 0 );
 
-    doc.Close();
+	doc.Close();
 
-    SPD_PR_INFO( "hello %d", 5 );
+	SPD_PR_INFO( "hello %d", 5 );
 
-    return 0;
+	return 0;
 }

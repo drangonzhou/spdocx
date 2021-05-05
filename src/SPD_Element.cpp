@@ -46,6 +46,9 @@ RefPtr<Element> Element::CreateElement( Document * doc, pugi::xml_node nd )
 	if( strcmp( nd.name(), "w:p" ) == 0 ) {
 		ele = new Paragraph( doc, nd );
 	}
+	else if( strcmp( nd.name(), "w:hyperlink" ) == 0 ) {
+		ele = new Hyperlink( doc, nd );
+	}
 	else if( strcmp( nd.name(), "w:r" ) == 0 ) {
 		ele = new Run( doc, nd );
 	}
@@ -163,7 +166,7 @@ const char * Paragraph::GetText()
 }
 
 Hyperlink::Hyperlink( Document * doc, pugi::xml_node nd )
-	: Element( ElementType::ELEMENT_TYPE_PARAGRAPH, doc, nd )
+	: Element( ElementType::ELEMENT_TYPE_HYPERLINK, doc, nd )
 	, m_link_type( nullptr )
 	, m_targetMode( nullptr )
 	, m_target( nullptr )
@@ -301,6 +304,142 @@ const char * Run::GetText()
 		return m_text->c_str();
 	m_text = new std::string( "" );
 	m_text->append( m_nd.child( "w:t" ).text().get() );
+	return m_text->c_str();
+}
+
+Table::Table( Document * doc, pugi::xml_node nd )
+	: Element( ElementType::ELEMENT_TYPE_TABLE, doc, nd )
+	, m_rowNum( -1 )
+{
+
+}
+
+Table::~Table()
+{
+	ResetCache();
+}
+
+void Table::ResetCache()
+{
+	m_rowNum = -1;
+	m_colWidth.clear();
+	return;
+}
+
+int Table::GetRowNum()
+{
+	if( m_rowNum > 0 )
+		return m_rowNum;
+	m_rowNum = 0;
+	for( pugi::xml_node pnd = m_nd.child( "w:tr" ); !pnd.empty(); pnd = pnd.next_sibling( "w:tr" ) ) {
+		++m_rowNum;
+	}
+	return m_rowNum;
+}
+
+int Table::GetColNum()
+{
+	if( (int)m_colWidth.size() > 0 )
+		return (int)m_colWidth.size();
+	m_colWidth.reserve( 8 );
+	pugi::xml_node pnd = m_nd.child( "w:tblGrid" );
+	if( m_nd.empty() )
+		return -1;
+	for( pnd = pnd.child( "w:gridCol" ); !pnd.empty(); pnd = pnd.next_sibling( "w:gridCol" ) ) {
+		m_colWidth.push_back( pnd.attribute( "w:w" ).as_int() );
+	}
+	return (int)m_colWidth.size();
+}
+
+int Table::GetColWidth( int idx )
+{
+	int colnum = GetColNum();
+	if( idx < 0 || idx >= colnum )
+		return -1;
+	return m_colWidth[idx];
+}
+
+TRow::TRow( Document * doc, pugi::xml_node nd )
+	: Element( ElementType::ELEMENT_TYPE_TABLE_TR, doc, nd )
+{
+}
+
+TRow::~TRow()
+{
+
+}
+
+TCell::TCell( Document * doc, pugi::xml_node nd )
+	: Element( ElementType::ELEMENT_TYPE_TABLE_TC, doc, nd )
+	, m_span_num( -1 )
+	, m_vmerge_type( VMergeType::VMERGE_INVALID )
+	, m_text( nullptr )
+{
+
+}
+
+TCell::~TCell()
+{
+	ResetCache();
+}
+
+void TCell::ResetCache()
+{
+	m_span_num = -1;
+	m_vmerge_type = VMergeType::VMERGE_INVALID;
+	if( m_text != nullptr )
+		delete m_text, m_text = nullptr;
+	return;
+}
+
+int TCell::GetSpanNum()
+{
+	if( m_span_num != -1 )
+		return m_span_num;
+	m_span_num = 0;
+	pugi::xml_node pnd = m_nd.child( "w:tcPr" ).child( "w:gridSpan" );
+	if( !pnd.empty() )
+		m_span_num = pnd.attribute( "w:val" ).as_int();
+	return m_span_num;
+}
+
+VMergeType TCell::GetVMergeType()
+{
+	if( m_vmerge_type != VMergeType::VMERGE_INVALID )
+		return m_vmerge_type;
+	pugi::xml_node pnd = m_nd.child( "w:tcPr" ).child( "w:vMerge" );
+	if( !pnd.empty() ) {
+		pugi::xml_attribute attr = pnd.attribute( "w:val" );
+		if( !attr.empty() && strcmp( attr.value(), "restart" ) == 0 )
+			m_vmerge_type = VMergeType::VMERGE_START;
+		else
+			m_vmerge_type = VMergeType::VMERGE_CONT;
+	}
+	else {
+		m_vmerge_type = VMergeType::VMERGE_NONE;
+	}
+	return m_vmerge_type;
+}
+
+const char * TCell::GetText()
+{
+	if( m_text != nullptr )
+		return m_text->c_str();
+	m_text = new std::string( "" );
+	bool is_first = true;
+	// only get paragraph text, ignore table in table
+	for( RefPtr<Element> ele = GetFirstChild(); ele.IsValid(); ele = ele->GetNext() ) {
+		if( ele->GetType() != ElementType::ELEMENT_TYPE_PARAGRAPH )
+			continue;
+		RefPtr<Paragraph> par = ele;
+		if( is_first ) {
+			is_first = false;
+		}
+		else {
+			m_text->append( "\n" );
+		}
+		m_text->append( par->GetText() );
+	}
 	return m_text->c_str();
 }
 

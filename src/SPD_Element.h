@@ -21,6 +21,7 @@
 
 #include <pugixml.hpp>
 #include <string>
+#include <vector>
 
 BEGIN_NS_SPD
 ////////////////////////////////
@@ -64,6 +65,7 @@ public:
 
 	virtual void ResetCache() { return; }
 
+	bool IsValid() const { return m_type != ElementType::ELEMENT_TYPE_INVALID; }
 	ElementType GetType() const { return m_type; }
 	const char * GetTag() const { return m_nd.name(); }
 
@@ -106,7 +108,7 @@ public:
 	virtual void ResetCache();
 
 	const char * GetAnchor();     // local bookmark link
-	const char * GetLinkType();   // hyperlink, type, ex : image -> http://schema.../image
+	const char * GetLinkType();   // hyperlink type, ex : image -> http://schema.../image
 	const char * GetTargetMode(); // hyperlink mode, internal : "", external : "External"
 	const char * GetTarget();     // hyperlink target, internal : "media/image1.png", external : "http://xxx.org"
 	const char * GetText();
@@ -139,21 +141,65 @@ protected:
 	std::string * m_text;
 };
 
-/*
 class SPD_API Table : public Element
 {
 public:
 	Table( Document * doc, pugi::xml_node nd );
 	virtual ~Table();
+
+	virtual void ResetCache();
+
+	int GetRowNum();
+	int GetColNum();
+	int GetColWidth( int idx );  // get each column width, total width maybe 8000+
+
+protected:
+	int m_rowNum;
+	std::vector<int> m_colWidth;
 };
-//*/
+
+class SPD_API TRow : public Element
+{
+public:
+	TRow( Document * doc, pugi::xml_node nd );
+	virtual ~TRow();
+};
+
+enum class VMergeType
+{
+	VMERGE_INVALID = -1,
+	VMERGE_NONE = 0,      // no vmerge, normal cell
+	VMERGE_START,
+	VMERGE_CONT,
+};
+
+class SPD_API TCell : public Element
+{
+public:
+	TCell( Document * doc, pugi::xml_node nd );
+	virtual ~TCell();
+
+	virtual void ResetCache();
+
+	int GetSpanNum();  // 0 means no span
+	VMergeType GetVMergeType();
+
+	const char * GetText();
+
+protected:
+	int m_span_num;
+	VMergeType m_vmerge_type;
+	std::string * m_text;
+};
 
 // DLL export template 
 template SPD_API class RefPtr<Element>;
 template SPD_API class RefPtr<Paragraph>;
 template SPD_API class RefPtr<Hyperlink>;
 template SPD_API class RefPtr<Run>;
-//template SPD_API class RefPtr<Table>;
+template SPD_API class RefPtr<Table>;
+template SPD_API class RefPtr<TRow>;
+template SPD_API class RefPtr<TCell>;
 
 ////////////////////////////////
 END_NS_SPD
