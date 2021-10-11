@@ -20,8 +20,18 @@
 BEGIN_NS_SPD
 ////////////////////////////////
 
+// DLL export template 
+template SPD_API class RefPtr<Element>;
+template SPD_API class RefPtr<Paragraph>;
+template SPD_API class RefPtr<Hyperlink>;
+template SPD_API class RefPtr<Run>;
+template SPD_API class RefPtr<Table>;
+template SPD_API class RefPtr<TRow>;
+template SPD_API class RefPtr<TCell>;
+
 static bool is_skipped_node( pugi::xml_node nd )
 {
+	// don't skip unknown node, only skip known unused node and nodes that already used by parent
 	if( nd.type() != pugi::node_element
 		|| strcmp( nd.name(), "w:t" ) == 0
 		|| strcmp( nd.name(), "w:pPr" ) == 0
@@ -31,7 +41,8 @@ static bool is_skipped_node( pugi::xml_node nd )
 		|| strcmp( nd.name(), "w:trPr" ) == 0
 		|| strcmp( nd.name(), "w:tcPr" ) == 0
 		|| strcmp( nd.name(), "w:sectPr" ) == 0
-		) {
+		) 
+	{
 		return true;
 	}
 	return false;
@@ -46,13 +57,28 @@ RefPtr<Element> Element::CreateElement( Document * doc, pugi::xml_node nd )
 	if( strcmp( nd.name(), "w:p" ) == 0 ) {
 		ele = new Paragraph( doc, nd );
 	}
+	else if( strcmp( nd.name(), "w:r" ) == 0 ) {
+		if( !nd.child( "w:t" ).empty() ) {
+			ele = new Run( doc, nd );
+		}
+		// TODO (later) : other w:r, ex w:commentReference
+		else {
+			ele = new Element( ElementType::ELEMENT_TYPE_UNKNOWN, doc, nd );
+		}
+	}
 	else if( strcmp( nd.name(), "w:hyperlink" ) == 0 ) {
 		ele = new Hyperlink( doc, nd );
 	}
-	else if( strcmp( nd.name(), "w:r" ) == 0 ) {
-		ele = new Run( doc, nd );
+	else if( strcmp( nd.name(), "w:tbl" ) == 0 ) {
+		ele = new Table( doc, nd );
 	}
-	// TODO : other known element
+	else if( strcmp( nd.name(), "w:tr" ) == 0 ) {
+		ele = new TRow( doc, nd );
+	}
+	else if( strcmp( nd.name(), "w:tc" ) == 0 ) {
+		ele = new TCell( doc, nd );
+	}
+	// TODO (later) : other known element
 	else {
 		ele = new Element( ElementType::ELEMENT_TYPE_UNKNOWN, doc, nd );
 	}
@@ -428,7 +454,7 @@ const char * TCell::GetText()
 	m_text = new std::string( "" );
 	bool is_first = true;
 	// only get paragraph text, ignore table in table
-	for( RefPtr<Element> ele = GetFirstChild(); ele.IsValid(); ele = ele->GetNext() ) {
+	for( RefPtr<Element> ele = GetFirstChild(); ele->IsValid(); ele = ele->GetNext() ) {
 		if( ele->GetType() != ElementType::ELEMENT_TYPE_PARAGRAPH )
 			continue;
 		RefPtr<Paragraph> par = ele;

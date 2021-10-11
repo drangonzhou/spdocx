@@ -33,21 +33,23 @@ enum class ElementType
 	ELEMENT_TYPE_INVALID,  // not valid
 	ELEMENT_TYPE_UNKNOWN,  // unknown tag
 
-	ELEMENT_TYPE_PARAGRAPH,
-	ELEMENT_TYPE_RUN,
-	ELEMENT_TYPE_HYPERLINK,
+	ELEMENT_TYPE_PARAGRAPH,  // w:p
+	ELEMENT_TYPE_HYPERLINK,  // w:hyperlink
+	ELEMENT_TYPE_RUN,        // w:r -> w:t
 
-	ELEMENT_TYPE_TABLE,
-	ELEMENT_TYPE_TABLE_TR,
-	ELEMENT_TYPE_TABLE_TC,
+	ELEMENT_TYPE_TABLE,      // w:tbl
+	ELEMENT_TYPE_TABLE_TR,   // w:tr
+	ELEMENT_TYPE_TABLE_TC,   // w:tc
 
-	ELEMENT_TYPE_SECTION,
+	// TODO : picture
 
-	ELEMENT_TYPE_BOOKMARK_START,
-	ELEMENT_TYPE_BOOKMARK_END,
-	ELEMENT_TYPE_COMMENT_START,
-	ELEMENT_TYPE_COMMENT_END,
-	ELEMENT_TYPE_RUN_COMMENT_REF,
+	ELEMENT_TYPE_SECTION,    // w:sectPr
+
+	ELEMENT_TYPE_BOOKMARK_START,   // w:bookmarkStart
+	ELEMENT_TYPE_BOOKMARK_END,     // w:bookmarkEnd
+	ELEMENT_TYPE_COMMENT_START,    // w:commentRangeStart
+	ELEMENT_TYPE_COMMENT_END,      // w:commentRangeEnd
+	ELEMENT_TYPE_RUN_COMMENT_REF,  // w:r -> w:commentReference
 
 	ELEMENT_TYPE_MAX
 };
@@ -74,6 +76,8 @@ public:
 	RefPtr<Element> GetNext() const;
 	RefPtr<Element> GetFirstChild() const;
 
+	// TODO : create next/prev element, delete element
+
 private:
 	friend class SPDDebug;
 	ElementType m_type;
@@ -94,6 +98,8 @@ public:
 	const char * GetStyleName(); // style name, ex : heading 1
 	const char * GetText();
 
+	// TODO : modify
+
 protected:
 	const char * m_style_name;
 	std::string * m_text;
@@ -112,6 +118,8 @@ public:
 	const char * GetTargetMode(); // hyperlink mode, internal : "", external : "External"
 	const char * GetTarget();     // hyperlink target, internal : "media/image1.png", external : "http://xxx.org"
 	const char * GetText();
+
+	// TODO : modify
 
 protected:
 	const char * m_link_type;
@@ -137,6 +145,8 @@ public:
 	bool GetDoubleStrike();      // font deleted with double strike
 	const char * GetText();
 
+	// TODO : modify
+
 protected:
 	std::string * m_text;
 };
@@ -153,6 +163,8 @@ public:
 	int GetColNum();
 	int GetColWidth( int idx );  // get each column width, total width maybe 8000+
 
+	// TODO : modify
+
 protected:
 	int m_rowNum;
 	std::vector<int> m_colWidth;
@@ -163,6 +175,9 @@ class SPD_API TRow : public Element
 public:
 	TRow( Document * doc, pugi::xml_node nd );
 	virtual ~TRow();
+
+	// TODO : modify
+
 };
 
 enum class VMergeType
@@ -183,23 +198,15 @@ public:
 
 	int GetSpanNum();  // 0 means no span
 	VMergeType GetVMergeType();
-
 	const char * GetText();
+
+	// TODO : modify
 
 protected:
 	int m_span_num;
 	VMergeType m_vmerge_type;
 	std::string * m_text;
 };
-
-// DLL export template 
-template SPD_API class RefPtr<Element>;
-template SPD_API class RefPtr<Paragraph>;
-template SPD_API class RefPtr<Hyperlink>;
-template SPD_API class RefPtr<Run>;
-template SPD_API class RefPtr<Table>;
-template SPD_API class RefPtr<TRow>;
-template SPD_API class RefPtr<TCell>;
 
 ////////////////////////////////
 END_NS_SPD

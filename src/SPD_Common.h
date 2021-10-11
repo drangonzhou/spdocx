@@ -79,6 +79,8 @@ SPD_API int SPD_SetLogFuncLevel( SPD_LogFunc_t func, int level );
 
 // <3> Reference Object
 
+template struct SPD_API std::atomic<int>;
+
 class SPD_API RefObj
 {
 protected:
@@ -143,9 +145,6 @@ private:
 	template< class T2 > friend class RefPtr;
 	T * m_obj;
 };
-
-// DLL export template 
-template SPD_API class RefPtr<RefObj>;
 
 ////////////////////////////////
 END_NS_SPD

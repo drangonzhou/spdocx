@@ -137,7 +137,7 @@ int main( int argc, char * argv[] )
 
 	SPDDebug::DumpDocument( &doc );
 
-	RefPtr<Element> ele = doc.GetFirstChild();
+	RefPtr<Element> ele = doc.GetFirstElement();
 
 	RefPtr<Element> ele2 = ele->GetParent();
 	printf( "parent is %d\n", (int)ele2->GetType() );

@@ -57,7 +57,10 @@ public:
 	int Close();
 
 	// Paragraph or Table, or other Element ( Section )
-	RefPtr<Element> GetFirstChild();
+	// If no Element, auto create an empty Paragraph
+	RefPtr<Element> GetFirstElement();
+
+	// TODO : create element, update element
 
 protected:
 	int load_style();
