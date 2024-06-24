@@ -45,7 +45,7 @@ enum SPD_Error_t
 	SPD_ERR_OPEN_ZIP,
 	SPD_ERR_OPEN_XML,
 
-	SPD_ERR_MIN
+	SPD_ERR_END
 };
 
 
@@ -56,7 +56,7 @@ enum {
 	SPD_LOG_LEVEL_INFO = 4,
 	SPD_LOG_LEVEL_ERR = 6,
 
-	SPD_LOG_LEVEL_SILENCE = 99,
+	SPD_LOG_LEVEL_SILENCE = 99,  // no log output
 };
 
 #ifdef _WIN32
@@ -74,10 +74,11 @@ SPD_API void SPD_PrintLog( int level, const char * file, int line, const char * 
 
 typedef void ( *SPD_LogFunc_t )( const char * log_msg );
 
+// default function is log to stderr and default level is SPD_LOG_LEVEL_INFO
+// can set to custom function, set func to nullptr means restore to defalt stderr
 SPD_API int SPD_SetLogFuncLevel( SPD_LogFunc_t func, int level );
 
-
-// <3> Reference Object
+// <3> Reference Object , should not multiple inheritance
 
 template struct SPD_API std::atomic<int>;
 
@@ -86,6 +87,8 @@ class SPD_API RefObj
 protected:
 	RefObj() : m_val( 0 ) { }
 	virtual ~RefObj() { }
+	RefObj( const RefObj & obj ) = delete;
+	RefObj & operator = ( const RefObj & obj ) = delete;
 
 protected:
 	template< class T > friend class RefPtr;
@@ -123,26 +126,17 @@ public:
 
 	inline T * operator -> () { return m_obj; }
 
-	inline operator bool() const { return m_obj != nullptr; }
 	inline bool IsValid() const { return m_obj != nullptr; }
+	inline operator bool() const { return IsValid(); }
 
-	template< class T2 >
-	RefPtr( const RefPtr<T2> & obj ) { m_obj = static_cast<T *>( obj.m_obj ); if( m_obj != nullptr ) m_obj->IncRef();	}
-	template< class T2 >
-	RefPtr & operator = ( const RefPtr<T2> & obj )
+	template< class T2>
+	operator RefPtr<T2> () const 
 	{
-		if( &obj == this )
-			return *this;
-		if( m_obj != nullptr )
-			m_obj->DecRef();
-		m_obj = static_cast<T *>( obj.m_obj );
-		if( m_obj != nullptr ) 
-			m_obj->IncRef();
-		return *this;
+		T2 * obj = static_cast<T2 *>( m_obj );
+		return  RefPtr<T2>( obj );
 	}
 
 private:
-	template< class T2 > friend class RefPtr;
 	T * m_obj;
 };
 

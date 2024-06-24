@@ -21,21 +21,29 @@
 BEGIN_NS_SPD
 ////////////////////////////////
 
-Document::Document()
-	: m_zip( nullptr )
+Document::Document() : m_zip( nullptr )
 {
 	 
 }
 
 Document::~Document()
 {
-	Close();
+	CloseDiscard();
+}
+
+int Document::New()
+{
+	int ret = 0;
+	CloseDiscard();
+	// TODO : set default style
+	// TODO : need impl
+	return -1;
 }
 
 int Document::Open( const char * fname )
 {
 	if( m_zip != nullptr )
-		Close();
+		CloseDiscard();
 
 	int ret = 0;
 	m_zip = zip_open( fname, 0, &ret );
@@ -47,15 +55,21 @@ int Document::Open( const char * fname )
 	ret = read_zip_xml( "word/document.xml", &m_doc );
 	if( ret < 0 ) {
 		SPD_PR_INFO( "read_zip_xml() [word/document.xml] failed, err %d", ret );
-		Close();
+		CloseDiscard();
 		return ret;
 	}
 
 	// simple check
 	pugi::xml_node nd = m_doc.document_element();
-	if( strcmp( nd.name(), "w:document" ) != 0 || strcmp( nd.first_child().name(), "w:body" ) != 0 || load_style() < 0 ) {
+	if( strcmp( nd.name(), "w:document" ) != 0 || strcmp( nd.first_child().name(), "w:body" ) != 0 ) {
 		SPD_PR_INFO( "bad xml content" );
-		Close();
+		CloseDiscard();
+		return SPD_ERR_OPEN_XML;
+	}
+
+	if (load_style() < 0) {
+		SPD_PR_INFO("bad style content");
+		CloseDiscard();
 		return SPD_ERR_OPEN_XML;
 	}
 
@@ -64,14 +78,39 @@ int Document::Open( const char * fname )
 	return 0;
 }
 
-int Document::Save( const char * fname )
+class BufferWriter : public pugi::xml_writer 
 {
-	// TODO : need imp
+public:
+	std::vector<char> m_buf;
 
+	virtual void write( const void * data, size_t size ) 
+	{
+		m_buf.insert( m_buf.end(), static_cast<const char*>(data), static_cast<const char*>(data) + size );
+	}
+};
+
+int Document::SaveClose()
+{
+	BufferWriter writer;
+	writer.m_buf.reserve( 32 * 1024 );
+	m_doc.save( writer );
+	zip_source_t * zsrc = zip_source_buffer( m_zip, &writer.m_buf[0], writer.m_buf.size(), 0 );
+	zip_file_add( m_zip, "word/document.xml", zsrc, ZIP_FL_OVERWRITE );
+	//zip_source_free( zsrc );
+	zip_close( m_zip ), m_zip = nullptr;
+	m_doc.reset();
+	m_style.clear();
+	m_rela.clear();
+	return 0;
+}
+
+int Document::SaveAs( const char * fname )
+{
+	// TODO : need impl
 	return -1;
 }
 
-int Document::Close()
+int Document::CloseDiscard()
 {
 	if( m_zip != nullptr ) {
 		zip_discard( m_zip ), m_zip = nullptr;
@@ -151,7 +190,6 @@ int Document::load_rela()
 		}
 	}
 	return SPD_ERR_OK;
-
 }
 
 int Document::read_zip_xml( const char * zip_fname, pugi::xml_document * doc )

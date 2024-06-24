@@ -29,7 +29,7 @@
 BEGIN_NS_SPD
 ////////////////////////////////
 
-class StyleLite
+class SPD_API StyleLite
 {
 public:
 	std::string m_id;
@@ -37,7 +37,7 @@ public:
 	std::string m_name;
 };
 
-class Relationship
+class SPD_API Relationship
 {
 public:
 	std::string m_id;
@@ -53,8 +53,11 @@ public:
 	~Document();
 
 	int Open( const char * fname );
-	int Save( const char * fname = NULL );
-	int Close();
+	int SaveClose();
+	int CloseDiscard();
+
+	int New();
+	int SaveAs( const char * fname );
 
 	// Paragraph or Table, or other Element ( Section )
 	// If no Element, auto create an empty Paragraph
@@ -78,8 +81,8 @@ protected:
 private:
 	friend class SPDDebug;
 	zip_t * m_zip;
-	pugi::xml_document m_doc;
 
+	pugi::xml_document m_doc;
 	std::map< std::string, StyleLite > m_style;
 	std::map< std::string, Relationship > m_rela;
 };

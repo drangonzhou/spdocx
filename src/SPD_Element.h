@@ -87,6 +87,8 @@ protected:
 	pugi::xml_node m_nd;
 };
 
+template class SPD_API RefPtr<Element>;
+
 class SPD_API Paragraph : public Element
 {
 public:
@@ -104,6 +106,8 @@ protected:
 	const char * m_style_name;
 	std::string * m_text;
 };
+
+template class SPD_API RefPtr<Paragraph>;
 
 class SPD_API Hyperlink : public Element
 {
@@ -128,6 +132,8 @@ protected:
 	std::string * m_text;
 };
 
+template class SPD_API RefPtr<Hyperlink>;
+
 class SPD_API Run : public Element
 {
 public:
@@ -146,10 +152,13 @@ public:
 	const char * GetText();
 
 	// TODO : modify
+	void SetText( const char * text );
 
 protected:
 	std::string * m_text;
 };
+
+template class SPD_API RefPtr<Run>;
 
 class SPD_API Table : public Element
 {
@@ -170,6 +179,8 @@ protected:
 	std::vector<int> m_colWidth;
 };
 
+template class SPD_API RefPtr<Table>;
+
 class SPD_API TRow : public Element
 {
 public:
@@ -179,6 +190,8 @@ public:
 	// TODO : modify
 
 };
+
+template class SPD_API RefPtr<TRow>;
 
 enum class VMergeType
 {
@@ -207,6 +220,8 @@ protected:
 	VMergeType m_vmerge_type;
 	std::string * m_text;
 };
+
+template class SPD_API RefPtr<TCell>;
 
 ////////////////////////////////
 END_NS_SPD

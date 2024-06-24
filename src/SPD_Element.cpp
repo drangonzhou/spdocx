@@ -333,6 +333,14 @@ const char * Run::GetText()
 	return m_text->c_str();
 }
 
+void Run::SetText( const char * text )
+{
+	m_nd.child( "w:t" ).text().set( text );
+	if( m_text != nullptr )
+		delete m_text, m_text = nullptr;
+	return;
+}
+
 Table::Table( Document * doc, pugi::xml_node nd )
 	: Element( ElementType::ELEMENT_TYPE_TABLE, doc, nd )
 	, m_rowNum( -1 )

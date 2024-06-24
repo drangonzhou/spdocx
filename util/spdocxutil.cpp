@@ -19,6 +19,8 @@
 #include <iostream>
 #include <string>
 
+#include <time.h>
+
 BEGIN_NS_SPD
 ////////////////////////////////
 
@@ -144,7 +146,28 @@ int main( int argc, char * argv[] )
 
 	dump_element( ele, 0 );
 
-	doc.Close();
+	ele = nullptr;
+	doc.CloseDiscard();
+
+	ret = doc.Open( fname );
+	if( ret < 0 ) {
+		printf( "doc.Open() ret %d\n", ret );
+	}
+
+	ele = doc.GetFirstElement();
+	ele = ele->GetFirstChild();
+	if( ele->GetType() == ElementType::ELEMENT_TYPE_RUN ) {
+		RefPtr<Run> run = ele;
+		// TODO : test
+		int tt = (int)time( NULL );
+		std::string str = std::to_string( tt );
+		printf( "before modify : [%s]\n", run->GetText() );
+		run->SetText( str.c_str() );
+		printf( "after modify : [%s]\n", run->GetText() );
+	}
+
+	ele = nullptr;
+	doc.SaveClose();
 
 	SPD_PR_INFO( "hello %d", 5 );
 
