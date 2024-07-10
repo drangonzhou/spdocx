@@ -22,9 +22,6 @@
 BEGIN_NS_SPD
 ////////////////////////////////
 
-// DLL export template 
-template SPD_API class RefPtr<RefObj>;
-
 static_assert( SPD_ERR_END < 0, "SPD_ERROR too much" );
 
 static void spd_log_func_stderr( const char * log_msg )

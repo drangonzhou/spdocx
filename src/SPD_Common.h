@@ -80,65 +80,65 @@ SPD_API int SPD_SetLogFuncLevel( SPD_LogFunc_t func, int level );
 
 // <3> Reference Object , should not multiple inheritance
 
-template struct SPD_API std::atomic<int>;
-
-class SPD_API RefObj
-{
-protected:
-	RefObj() : m_val( 0 ) { }
-	virtual ~RefObj() { }
-	RefObj( const RefObj & obj ) = delete;
-	RefObj & operator = ( const RefObj & obj ) = delete;
-
-protected:
-	template< class T > friend class RefPtr;
-	void IncRef() { m_val.fetch_add( 1 ); return; }
-	void DecRef()
-	{
-		int ret = m_val.fetch_sub( 1 );
-		if( ret == 1 )
-			delete this;
-		return;
-	}
-
-private:
-	std::atomic_int m_val;
-};
-
-template<class T> class RefPtr
-{
-public:
-	RefPtr( T * obj ) { m_obj = obj; if( m_obj != nullptr ) m_obj->IncRef(); }
-	RefPtr( const RefPtr & obj ) { m_obj = obj.m_obj; if( m_obj != nullptr ) m_obj->IncRef(); }
-	~RefPtr() { if( m_obj != nullptr ) m_obj->DecRef(), m_obj = nullptr; }
-
-	RefPtr & operator = ( const RefPtr & obj )
-	{
-		if( &obj == this )
-			return *this;
-		if( m_obj != nullptr )
-			m_obj->DecRef();
-		m_obj = obj.m_obj;
-		if( m_obj != nullptr ) 
-			m_obj->IncRef();
-		return *this;
-	}
-
-	inline T * operator -> () { return m_obj; }
-
-	inline bool IsValid() const { return m_obj != nullptr; }
-	inline operator bool() const { return IsValid(); }
-
-	template< class T2>
-	operator RefPtr<T2> () const 
-	{
-		T2 * obj = static_cast<T2 *>( m_obj );
-		return  RefPtr<T2>( obj );
-	}
-
-private:
-	T * m_obj;
-};
+//template class SPD_API std::atomic<int>;
+//
+//class SPD_API RefObj
+//{
+//protected:
+//	RefObj() : m_val( 0 ) { }
+//	virtual ~RefObj() { }
+//	RefObj( const RefObj & obj ) = delete;
+//	RefObj & operator = ( const RefObj & obj ) = delete;
+//
+//protected:
+//	template< class T > friend class RefPtr;
+//	void IncRef() { m_val.fetch_add( 1 ); return; }
+//	void DecRef()
+//	{
+//		int ret = m_val.fetch_sub( 1 );
+//		if( ret == 1 )
+//			delete this;
+//		return;
+//	}
+//
+//private:
+//	std::atomic_int m_val;
+//};
+//
+//template<class T> class RefPtr
+//{
+//public:
+//	RefPtr( T * obj ) { m_obj = obj; if( m_obj != nullptr ) m_obj->IncRef(); }
+//	RefPtr( const RefPtr & obj ) { m_obj = obj.m_obj; if( m_obj != nullptr ) m_obj->IncRef(); }
+//	~RefPtr() { if( m_obj != nullptr ) m_obj->DecRef(), m_obj = nullptr; }
+//
+//	RefPtr & operator = ( const RefPtr & obj )
+//	{
+//		if( &obj == this )
+//			return *this;
+//		if( m_obj != nullptr )
+//			m_obj->DecRef();
+//		m_obj = obj.m_obj;
+//		if( m_obj != nullptr ) 
+//			m_obj->IncRef();
+//		return *this;
+//	}
+//
+//	inline T * operator -> () { return m_obj; }
+//
+//	inline bool IsValid() const { return m_obj != nullptr; }
+//	inline operator bool() const { return IsValid(); }
+//
+//	template< class T2>
+//	operator RefPtr<T2> () const 
+//	{
+//		T2 * obj = static_cast<T2 *>( m_obj );
+//		return  RefPtr<T2>( obj );
+//	}
+//
+//private:
+//	T * m_obj;
+//};
 
 ////////////////////////////////
 END_NS_SPD

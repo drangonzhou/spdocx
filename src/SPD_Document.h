@@ -61,22 +61,21 @@ public:
 
 	// Paragraph or Table, or other Element ( Section )
 	// If no Element, auto create an empty Paragraph
-	RefPtr<Element> GetFirstElement();
+	Element GetFirstElement() const;
+	ElementIterator begin() const { return ElementIterator( GetFirstElement() ); }
+	ElementIterator end() const { return ElementIterator(); }
+	ElementRange Children() const { return ElementRange( begin(), end() ); }
 
 	// TODO : create element, update element
 
-protected:
-	int load_style();
-	int load_rela();
+	const char * GetStyleName( const char * id ) const;
+	const Relationship * GetRelationship( const char * id ) const;
 
 protected:
 	int read_zip_xml( const char * zip_fname, pugi::xml_document * doc );
 
-protected:
-	friend class Paragraph;
-	friend class Hyperlink;
-	const char * get_style_name( const char * id );
-	const Relationship * get_relationship( const char * id );
+	int load_style();
+	int load_rela();
 
 private:
 	friend class SPDDebug;

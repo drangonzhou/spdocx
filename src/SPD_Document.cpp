@@ -228,14 +228,14 @@ int Document::read_zip_xml( const char * zip_fname, pugi::xml_document * doc )
 	return SPD_ERR_OK;
 }
 
-RefPtr<Element> Document::GetFirstElement()
+Element Document::GetFirstElement() const
 {
 	// <w:document><w:body><w:p>...</w:p>...</w:body></w:document>
 	pugi::xml_node nd = m_doc.document_element().first_child().first_child();
-	return Element::CreateElement( this, nd );
+	return Element( nd );
 }
 
-const char * Document::get_style_name( const char * id )
+const char * Document::GetStyleName( const char * id ) const
 {
 	if( id == nullptr || id[0] == '\0' )
 		return "";
@@ -245,7 +245,7 @@ const char * Document::get_style_name( const char * id )
 	return it->second.m_name.c_str();
 }
 
-const Relationship * Document::get_relationship( const char * id )
+const Relationship * Document::GetRelationship( const char * id ) const
 {
 	if( id == nullptr || id[0] == '\0' )
 		return nullptr;

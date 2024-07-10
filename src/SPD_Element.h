@@ -26,202 +26,224 @@
 BEGIN_NS_SPD
 ////////////////////////////////
 
-class Document;
-
-enum class ElementType
+enum class ElementTypeE : uint8_t
 {
-	ELEMENT_TYPE_INVALID,  // not valid
-	ELEMENT_TYPE_UNKNOWN,  // unknown tag
+	INVALID,  // not valid
+	UNKNOWN,  // valid but unknown tag
 
-	ELEMENT_TYPE_PARAGRAPH,  // w:p
-	ELEMENT_TYPE_HYPERLINK,  // w:hyperlink
-	ELEMENT_TYPE_RUN,        // w:r -> w:t
+	PARAGRAPH,  // w:p (top)
+	HYPERLINK,  // w:hyperlink
+	RUN,        // w:r -> w:t
 
-	ELEMENT_TYPE_TABLE,      // w:tbl
-	ELEMENT_TYPE_TABLE_TR,   // w:tr
-	ELEMENT_TYPE_TABLE_TC,   // w:tc
+	TABLE,      // w:tbl (top)
+	TABLE_ROW,   // w:tr
+	TABLE_CELL,   // w:tc
 
 	// TODO : picture
 
-	ELEMENT_TYPE_SECTION,    // w:sectPr
+	SECTION,    // w:sectPr (top)
 
-	ELEMENT_TYPE_BOOKMARK_START,   // w:bookmarkStart
-	ELEMENT_TYPE_BOOKMARK_END,     // w:bookmarkEnd
-	ELEMENT_TYPE_COMMENT_START,    // w:commentRangeStart
-	ELEMENT_TYPE_COMMENT_END,      // w:commentRangeEnd
-	ELEMENT_TYPE_RUN_COMMENT_REF,  // w:r -> w:commentReference
+	BOOKMARK_START,   // w:bookmarkStart
+	BOOKMARK_END,     // w:bookmarkEnd
+	COMMENT_START,    // w:commentRangeStart
+	COMMENT_END,      // w:commentRangeEnd
+	RUN_COMMENT_REF,  // w:r -> w:commentReference
 
-	ELEMENT_TYPE_MAX
+	MAX
 };
 
-class SPD_API Element : public RefObj
+class Relationship;
+class Document;
+class ElementIterator;
+class ElementRange;
+
+class SPD_API Element
 {
 public:
-	static RefPtr<Element> CreateElement( Document * doc, pugi::xml_node nd = pugi::xml_node() );
+	Element() : m_type( ElementTypeE::INVALID ) { }
+	Element( pugi::xml_node nd );
+	Element( const Element & ele ) : m_nd( ele.m_nd ), m_type( ele.m_type ) { }
+	~Element() { m_type = ElementTypeE::INVALID; }
 
-public:
-	Element( ElementType type, Document * doc, pugi::xml_node nd );
-	virtual ~Element();
-	Element( const Element & ele ) = delete;
-	Element & operator = ( const Element & ele ) = delete;
+	Element & operator = ( const Element & ele ) { if( &ele != this ) m_nd = ele.m_nd, m_type = ele.m_type; return *this; }
 
-	virtual void ResetCache() { return; }
+	bool IsValid() const { return m_type != ElementTypeE::INVALID; }
+	operator bool() const { return IsValid(); }
+	bool operator ! () const { return !IsValid(); }
 
-	bool IsValid() const { return m_type != ElementType::ELEMENT_TYPE_INVALID; }
-	ElementType GetType() const { return m_type; }
+	bool operator == ( const Element & ele ) const { return m_nd == ele.m_nd; }
+	bool operator != ( const Element & ele ) const { return m_nd != ele.m_nd; }
+	bool operator < ( const Element & ele ) const { return m_nd < ele.m_nd; }
+	bool operator > ( const Element & ele ) const { return m_nd > ele.m_nd; }
+	bool operator <= ( const Element & ele ) const { return m_nd <= ele.m_nd; }
+	bool operator >= ( const Element & ele ) const { return m_nd >= ele.m_nd; }
+
+	ElementTypeE GetType() const { return m_type; }
 	const char * GetTag() const { return m_nd.name(); }
 
-	RefPtr<Element> GetParent() const;
-	RefPtr<Element> GetPrev() const;
-	RefPtr<Element> GetNext() const;
-	RefPtr<Element> GetFirstChild() const;
+	Element GetParent() const;
+	Element GetPrev() const;
+	Element GetNext() const;
+	Element GetFirstChild() const;
+
+	// child
+	inline ElementIterator begin() const;
+	inline ElementIterator end() const;
+	inline ElementRange Children() const;
 
 	// TODO : create next/prev element, delete element
 
+protected:
+	friend class ElementIterator;
+	pugi::xml_node m_nd;
+
 private:
 	friend class SPDDebug;
-	ElementType m_type;
-
-protected:
-	Document * m_doc;
-	pugi::xml_node m_nd;
+	ElementTypeE m_type;
 };
 
-template class SPD_API RefPtr<Element>;
+class SPD_API ElementIterator
+{
+public:
+	ElementIterator() { }
+	ElementIterator( const Element & ele ) : m_ele( ele ) { }
+
+	bool operator == ( const ElementIterator & it ) const { return m_ele.m_nd == it.m_ele.m_nd; }
+	bool operator != ( const ElementIterator & it ) const { return m_ele.m_nd != it.m_ele.m_nd; }
+
+	const ElementIterator & operator ++ () { m_ele = m_ele.GetNext(); return *this; }
+	ElementIterator operator ++ ( int ) { auto tmp = *this; m_ele = m_ele.GetNext(); return tmp; }
+
+	const ElementIterator & operator -- () { m_ele = m_ele.GetPrev(); return *this; }
+	ElementIterator operator -- ( int ) { auto tmp = *this; m_ele = m_ele.GetPrev(); return tmp; }
+
+	const Element & operator * () const { return m_ele; }
+	const Element * operator -> () const { return &m_ele; }
+	Element & operator * () { return m_ele; }
+	Element * operator -> () { return &m_ele; }
+
+private:
+	Element m_ele;
+};
+
+class SPD_API ElementRange
+{
+public:
+	ElementRange( ElementIterator begin_it, ElementIterator end_it )
+		: m_begin( begin_it ), m_end( end_it ) { }
+
+	ElementIterator begin() const { return m_begin; }
+	ElementIterator end() const { return m_end; }
+
+private:
+	ElementIterator m_begin;
+	ElementIterator m_end;
+};
+
+inline ElementIterator Element::begin() const { return ElementIterator( GetFirstChild() ); }
+inline ElementIterator Element::end() const { return ElementIterator(); }
+inline ElementRange Element::Children() const { return ElementRange(begin(), end()); }
 
 class SPD_API Paragraph : public Element
 {
+private:
+	Paragraph( pugi::xml_node nd ) : Element( nd ) { }
+	virtual ~Paragraph() { }
+
 public:
-	Paragraph( Document * doc, pugi::xml_node nd );
-	virtual ~Paragraph();
-
-	virtual void ResetCache();
-
-	const char * GetStyleName(); // style name, ex : heading 1
-	const char * GetText();
+	const char * GetStyleId() const;
+	const char * GetStyleName( const Document * doc ) const; // style name, ex : heading 1
+	std::string GetText() const;
 
 	// TODO : modify
-
-protected:
-	const char * m_style_name;
-	std::string * m_text;
 };
-
-template class SPD_API RefPtr<Paragraph>;
 
 class SPD_API Hyperlink : public Element
 {
+private:
+	Hyperlink( pugi::xml_node nd ) : Element( nd ) { }
+	virtual ~Hyperlink() { }
+
 public:
-	Hyperlink( Document * doc, pugi::xml_node nd );
-	virtual ~Hyperlink();
-
-	virtual void ResetCache();
-
-	const char * GetAnchor();     // local bookmark link
-	const char * GetLinkType();   // hyperlink type, ex : image -> http://schema.../image
-	const char * GetTargetMode(); // hyperlink mode, internal : "", external : "External"
-	const char * GetTarget();     // hyperlink target, internal : "media/image1.png", external : "http://xxx.org"
-	const char * GetText();
+	const char * GetAnchor() const;     // local bookmark link
+	const char * GetRelationshipId() const;
+	const Relationship * GetRelationship( const Document * doc ) const;
+	const char * GetLinkType( const Document * doc ) const;   // hyperlink type, ex : image -> http://schema.../image
+	const char * GetTargetMode( const Document * doc ) const; // hyperlink mode, internal : "", external : "External"
+	const char * GetTarget( const Document * doc ) const;     // hyperlink target, internal : "media/image1.png", external : "http://xxx.org"
+	std::string GetText() const;
 
 	// TODO : modify
-
-protected:
-	const char * m_link_type;
-	const char * m_target;
-	const char * m_targetMode;
-	std::string * m_text;
 };
-
-template class SPD_API RefPtr<Hyperlink>;
 
 class SPD_API Run : public Element
 {
+private:
+	Run( pugi::xml_node nd ) : Element( nd ) { }
+	virtual ~Run() { }
+
 public:
-	Run( Document * doc, pugi::xml_node nd );
-	virtual ~Run();
-
-	virtual void ResetCache();
-
-	const char * GetColor();     // font front color, ex : 00B0F0
-	const char * GetHighline();  // font bg color, ex : yellow
-	bool GetBold();              // font bold 
-	bool GetItalic();            // font italic
-	const char * GetUnderline(); // font underline, ex : "", "singal", "double"
-	bool GetStrike();            // font deleted with strike
-	bool GetDoubleStrike();      // font deleted with double strike
-	const char * GetText();
+	const char * GetColor() const;     // font front color, ex : 00B0F0
+	const char * GetHighline() const;  // font bg color, ex : yellow
+	bool GetBold() const;              // font bold 
+	bool GetItalic() const;            // font italic
+	const char * GetUnderline() const; // font underline, ex : "", "singal", "double"
+	bool GetStrike() const;            // font deleted with strike
+	bool GetDoubleStrike() const;      // font deleted with double strike
+	std::string GetText() const;
 
 	// TODO : modify
 	void SetText( const char * text );
-
-protected:
-	std::string * m_text;
 };
-
-template class SPD_API RefPtr<Run>;
 
 class SPD_API Table : public Element
 {
+private:
+	Table( pugi::xml_node nd ) : Element( nd ) { }
+	virtual ~Table() { }
+
 public:
-	Table( Document * doc, pugi::xml_node nd );
-	virtual ~Table();
-
-	virtual void ResetCache();
-
-	int GetRowNum();
-	int GetColNum();
-	int GetColWidth( int idx );  // get each column width, total width maybe 8000+
+	int GetRowNum() const;
+	int GetColNum() const;
+	// get column width, total page width maybe 8000+, return -1 if bad idx
+	std::vector<int> GetColWidth() const;
+	int GetColWidth( int idx ) const;  
 
 	// TODO : modify
-
-protected:
-	int m_rowNum;
-	std::vector<int> m_colWidth;
 };
-
-template class SPD_API RefPtr<Table>;
 
 class SPD_API TRow : public Element
 {
-public:
-	TRow( Document * doc, pugi::xml_node nd );
-	virtual ~TRow();
+private:
+	TRow( pugi::xml_node nd ) : Element( nd ) { }
+	virtual ~TRow() { }
 
+public:
 	// TODO : modify
 
 };
 
-template class SPD_API RefPtr<TRow>;
-
-enum class VMergeType
+enum class VMergeTypeE : int8_t
 {
-	VMERGE_INVALID = -1,
-	VMERGE_NONE = 0,      // no vmerge, normal cell
-	VMERGE_START,
-	VMERGE_CONT,
+	INVALID = -1,
+	NONE = 0,      // no vmerge, normal cell
+	START,
+	CONT,
 };
 
 class SPD_API TCell : public Element
 {
+private:
+	TCell( pugi::xml_node nd ) : Element( nd ) { }
+	virtual ~TCell() { }
+
 public:
-	TCell( Document * doc, pugi::xml_node nd );
-	virtual ~TCell();
-
-	virtual void ResetCache();
-
-	int GetSpanNum();  // 0 means no span
-	VMergeType GetVMergeType();
-	const char * GetText();
+	int GetSpanNum() const;  // 0 means no span
+	VMergeTypeE GetVMergeType() const;
+	std::string GetText() const;
 
 	// TODO : modify
-
-protected:
-	int m_span_num;
-	VMergeType m_vmerge_type;
-	std::string * m_text;
 };
-
-template class SPD_API RefPtr<TCell>;
 
 ////////////////////////////////
 END_NS_SPD

@@ -50,72 +50,69 @@ END_NS_SPD
 
 using namespace spd;
 
-static void dump_element( RefPtr<Element> ele, int level )
+static void dump_element( const Document * doc, Element ele, int level )
 {
 	static const char pre[16] = "               ";
 	const char * p = ( level >= 15 ) ? pre : pre + 15 - level;
-	for( ; ele->GetType() != ElementType::ELEMENT_TYPE_INVALID; ele = ele->GetNext() ) {
-		printf( "%s[%s] (%d)\n", p, ele->GetTag(), (int)ele->GetType() );
-		switch( ele->GetType() )
+	for( ; ele.GetType() != ElementTypeE::INVALID; ele = ele.GetNext() ) {
+		printf( "%s[%s] (%d)\n", p, ele.GetTag(), (int)ele.GetType() );
+		switch( ele.GetType() )
 		{
-		case ElementType::ELEMENT_TYPE_PARAGRAPH :
+		case ElementTypeE::PARAGRAPH :
 		{
-			RefPtr<Paragraph> par = ele;
-			printf( "<style> [%s]\n", par->GetStyleName() );
-			printf( "<text> [%s]\n", par->GetText() );
-			par->ResetCache();
+			Paragraph & par = static_cast< Paragraph & >( ele );
+			printf( "<style> [%s]\n", par.GetStyleName( doc ) );
+			printf( "<text> [%s]\n", par.GetText().c_str() );
 		}
 			break;
-		case ElementType::ELEMENT_TYPE_HYPERLINK :
+		case ElementTypeE::HYPERLINK :
 		{
-			RefPtr<Hyperlink> hlk = ele;
-			printf( "<anchor> [%s]\n", hlk->GetAnchor() );
-			printf( "<linkType> [%s]\n", hlk->GetLinkType() );
-			printf( "<target> mode [%s] : [%s]\n", hlk->GetTargetMode(), hlk->GetTarget() );
-			printf( "<text> [%s]\n", hlk->GetText() );
-			hlk->ResetCache();
+			Hyperlink & hlk = static_cast< Hyperlink & >( ele );
+			printf( "<anchor> [%s]\n", hlk.GetAnchor() );
+			printf( "<linkType> [%s]\n", hlk.GetLinkType( doc ) );
+			printf( "<target> mode [%s] : [%s]\n", hlk.GetTargetMode( doc ), hlk.GetTarget( doc ) );
+			printf( "<text> [%s]\n", hlk.GetText().c_str() );
 		}
 			break;
-		case ElementType::ELEMENT_TYPE_RUN :
+		case ElementTypeE::RUN :
 		{
-			RefPtr<Run> run = ele;
-			printf( "<color> [%s], <hightline> [%s]\n", run->GetColor(), run->GetHighline() );
+			Run & run = static_cast< Run & >( ele );
+			printf( "<color> [%s], <hightline> [%s]\n", run.GetColor(), run.GetHighline() );
 			printf( "<bold> [%s], <italic> [%s], <underline> [%s], <strike> [%s], <dstrike> [%s]\n", 
-				run->GetBold() ? "true" : "false",
-				run->GetItalic() ? "true" : "false",
-				run->GetUnderline(), 
-				run->GetStrike() ? "true" : "false",
-				run->GetDoubleStrike() ? "true" : "false" );
-			printf( "<text> [%s]\n", run->GetText() );
-			run->ResetCache();
+				run.GetBold() ? "true" : "false",
+				run.GetItalic() ? "true" : "false",
+				run.GetUnderline(), 
+				run.GetStrike() ? "true" : "false",
+				run.GetDoubleStrike() ? "true" : "false" );
+			printf( "<text> [%s]\n", run.GetText().c_str() );
 		}
 			break;
-		case ElementType::ELEMENT_TYPE_TABLE :
+		case ElementTypeE::TABLE :
 		{
-			RefPtr<Table> tbl = ele;
-			printf( "<table> Row %d, Col %d, width [", tbl->GetRowNum(), tbl->GetColNum() );
-			for( int i = 0; i < tbl->GetColNum(); ++i ) {
+			Table & tbl = static_cast< Table & >( ele );
+			printf( "<table> Row %d, Col %d, width [", tbl.GetRowNum(), tbl.GetColNum() );
+			for( int i = 0; i < tbl.GetColNum(); ++i ) {
 				if( i != 0 )
 					printf( "," );
-				printf( " %d", tbl->GetColWidth( i ) );
+				printf( " %d", tbl.GetColWidth( i ) );
 			}
 			printf( " ]\n" );
 		}
 			break;
-		case ElementType::ELEMENT_TYPE_TABLE_TR :
+		case ElementTypeE::TABLE_ROW :
 			printf( "<table row>\n" );
 			break;
-		case ElementType::ELEMENT_TYPE_TABLE_TC :
+		case ElementTypeE::TABLE_CELL :
 		{
-			RefPtr<TCell> tc = ele;
-			printf( "<table cell> span %d, vmerge %d\n", tc->GetSpanNum(), (int)tc->GetVMergeType() );
-			printf( "<text> [%s]", tc->GetText() );
+			TCell & tc = static_cast< TCell & >( ele );
+			printf( "<table cell> span %d, vmerge %d\n", tc.GetSpanNum(), (int)tc.GetVMergeType() );
+			printf( "<text> [%s]", tc.GetText().c_str() );
 		}
 			break;
 		default:
 			break;
 		}
-		dump_element( ele->GetFirstChild(), level + 1 );
+		dump_element( doc, ele.GetFirstChild(), level + 1 );
 	}
 	return;
 }
@@ -139,14 +136,14 @@ int main( int argc, char * argv[] )
 
 	SPDDebug::DumpDocument( &doc );
 
-	RefPtr<Element> ele = doc.GetFirstElement();
+	Element ele = doc.GetFirstElement();
 
-	RefPtr<Element> ele2 = ele->GetParent();
-	printf( "parent is %d\n", (int)ele2->GetType() );
+	Element ele2 = ele.GetParent();
+	printf( "parent is %d\n", (int)ele2.GetType() );
 
-	dump_element( ele, 0 );
+	dump_element( &doc, ele, 0 );
 
-	ele = nullptr;
+	ele = Element(); // nullptr
 	doc.CloseDiscard();
 
 	ret = doc.Open( fname );
@@ -155,18 +152,18 @@ int main( int argc, char * argv[] )
 	}
 
 	ele = doc.GetFirstElement();
-	ele = ele->GetFirstChild();
-	if( ele->GetType() == ElementType::ELEMENT_TYPE_RUN ) {
-		RefPtr<Run> run = ele;
+	ele = ele.GetFirstChild();
+	if( ele.GetType() == ElementTypeE::RUN ) {
+		Run & run = static_cast< Run &>( ele );
 		// TODO : test
 		int tt = (int)time( NULL );
 		std::string str = std::to_string( tt );
-		printf( "before modify : [%s]\n", run->GetText() );
-		run->SetText( str.c_str() );
-		printf( "after modify : [%s]\n", run->GetText() );
+		printf( "before modify : [%s]\n", run.GetText().c_str() );
+		run.SetText( str.c_str() );
+		printf( "after modify : [%s]\n", run.GetText().c_str() );
 	}
 
-	ele = nullptr;
+	ele = Element(); // nullptr;
 	doc.SaveClose();
 
 	SPD_PR_INFO( "hello %d", 5 );
