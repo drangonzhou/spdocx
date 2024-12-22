@@ -20,11 +20,11 @@
 #include "SPD_Common.h"
 #include "SPD_Element.h"
 
-#include "zip.h"
 #include "pugixml.hpp"
 
 #include <string>
 #include <map>
+#include <vector>
 
 BEGIN_NS_SPD
 ////////////////////////////////
@@ -52,12 +52,12 @@ public:
 	Document();
 	~Document();
 
-	int Open( const char * fname );
-	int SaveClose();
-	int CloseDiscard();
-
 	int New();
-	int SaveAs( const char * fname );
+	int Open( const std::string & fname );
+	int Save( const std::string & fname = std::string{} );
+	int Close();
+	bool IsValid() const { return ! m_files.empty(); }
+	bool IsModified() const { return m_isModified; }
 
 	// Paragraph or Table, or other Element ( Section )
 	// If no Element, auto create an empty Paragraph
@@ -66,21 +66,32 @@ public:
 	ElementIterator end() const { return ElementIterator(); }
 	ElementRange Children() const { return ElementRange( begin(), end() ); }
 
-	// TODO : create element, update element
+	// default is add to back, 
+	Paragraph AddChildParagraph( bool add_back = true );
+	Table AddChildTable( bool add_back = true );
+	int DelChild( Element & child ); // child must be direct child
+	int DelAllChild();
 
 	const char * GetStyleName( const char * id ) const;
+	const char * GetStyleId( const char * name ) const;
 	const Relationship * GetRelationship( const char * id ) const;
+	// TODO : modify style and relationship
 
 protected:
-	int read_zip_xml( const char * zip_fname, pugi::xml_document * doc );
+	static int read_zip( const std::string & fname, std::map< std::string, std::vector<char> > & files );
+	static int write_zip( const std::string & fname, const std::map< std::string, std::vector<char> > & files );
 
+	int read_xml( const std::string & fname, pugi::xml_document * doc ) const;
+	int write_xml( const std::string & fname, const pugi::xml_document & doc );
 	int load_style();
 	int load_rela();
 
 private:
 	friend class SPDDebug;
-	zip_t * m_zip;
-
+	std::string m_fname;
+	std::map< std::string, std::vector<char> > m_files;  // zip files, every file has an extra '\0'
+	bool m_isModified = false;
+	
 	pugi::xml_document m_doc;
 	std::map< std::string, StyleLite > m_style;
 	std::map< std::string, Relationship > m_rela;

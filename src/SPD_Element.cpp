@@ -118,16 +118,59 @@ Element Element::GetFirstChild() const
 	return Element( nd );
 }
 
+int Element::DelChild( Element & child )
+{
+	bool ret = m_nd.remove_child( child.m_nd );
+	return ret ? 0 : -1;
+}
+
+int Element::DelAllChild()
+{
+	m_nd.remove_children();
+	return 0;
+}
+
 const char * Paragraph::GetStyleId() const
 {
 	pugi::xml_attribute attr = m_nd.child( "w:pPr" ).child( "w:pStyle" ).attribute( "w:val" );
-	return attr.name();
+	return attr.value();
 }
 
 const char * Paragraph::GetStyleName( const Document * doc ) const
 {
 	pugi::xml_attribute attr = m_nd.child( "w:pPr" ).child( "w:pStyle" ).attribute( "w:val" );
-	return doc->GetStyleName( attr.name() );
+	return doc->GetStyleName( attr.value() );
+}
+
+int Paragraph::SetStyleId( const char * id )
+{
+	//pugi::xml_attribute attr = m_nd.child( "w:pPr" ).child( "w:pStyle" ).attribute( "w:val" );
+	pugi::xml_node nd = m_nd.child( "w:pPr" );
+	if( nd.empty() ) {
+		nd = m_nd.append_child( "w:pPr" );
+	}
+	pugi::xml_node nd2 = nd.child( "w:pStyle" );
+	if( nd2.empty() ) {
+		nd2 = nd.append_child( "w:pStyle" );
+	}
+	pugi::xml_attribute attr = nd2.attribute( "w:val" );
+	if( id == nullptr || id[0] == '\0' ) {
+		if( !attr.empty() )
+			nd2.remove_attribute( attr );
+	}
+	else {
+		if( attr.empty() ) {
+			attr = nd2.append_attribute( "w:val" );
+		}
+		attr.set_value( id );
+	}
+	return 0;
+}
+
+int Paragraph::SetStyleName( const char * name, const Document * doc )
+{
+	const char * id = doc->GetStyleId( name );
+	return SetStyleId( id );
 }
 
 std::string Paragraph::GetText() const
@@ -146,6 +189,32 @@ std::string Paragraph::GetText() const
 		}
 	}
 	return text;
+}
+
+Run Paragraph::AddChildRun( bool add_back )
+{
+	pugi::xml_node nd = add_back ? m_nd.append_child( "w:r" ) : m_nd.prepend_child( "w:r" );
+	return Run( Element( nd ) );
+}
+
+Hyperlink Paragraph::AddChildHyperlink( bool add_back )
+{
+	pugi::xml_node nd = add_back ? m_nd.append_child( "w:hyperlink" ) : m_nd.prepend_child( "w:hyperlink" );
+	return Hyperlink( Element( nd ) );
+}
+
+Paragraph Paragraph::AddSiblingParagraph( bool add_next )
+{
+	pugi::xml_node nd = add_next ? m_nd.parent().insert_child_after( "w:p", m_nd )
+		: m_nd.parent().insert_child_before( "w:p", m_nd );
+	return Paragraph( Element( nd ) );
+}
+
+Table Paragraph::AddSiblingTable( bool add_next )
+{
+	pugi::xml_node nd = add_next ? m_nd.parent().insert_child_after( "w:tbl", m_nd ) 
+		: m_nd.parent().insert_child_before( "w:tbl", m_nd );
+	return Table( Element( nd ) );
 }
 
 const char * Hyperlink::GetAnchor() const
@@ -201,6 +270,56 @@ std::string Hyperlink::GetText() const
 	return text;
 }
 
+int Hyperlink::SetAnchor( const char * anchor )
+{
+	pugi::xml_attribute attr = m_nd.attribute( "w:anchor" );
+	if( anchor == nullptr || anchor[0] == '\0' ) {
+		if( !attr.empty() )
+			m_nd.remove_attribute( attr );
+	}
+	else {
+		if( attr.empty() )
+			attr = m_nd.append_attribute( "w:anchor" );
+		attr.set_value( anchor );
+	}
+	return 0;
+}
+
+int Hyperlink::SetRelationshipId( const char * id )
+{
+	pugi::xml_attribute attr = m_nd.attribute( "r:id" );
+	if( id == nullptr || id[0] == '\0' ) {
+		if( !attr.empty() )
+			m_nd.remove_attribute( attr );
+	}
+	else {
+		if( attr.empty() )
+			attr = m_nd.append_attribute( "r:id" );
+		attr.set_value( id );
+	}
+	return 0;
+}
+
+Run Hyperlink::AddChildRun( bool add_back )
+{
+	pugi::xml_node nd = add_back ? m_nd.append_child( "w:r" ) : m_nd.prepend_child( "w:r" );
+	return Run( Element( nd ) );
+}
+
+Hyperlink Hyperlink::AddSiblingHyperlink( bool add_next )
+{
+	pugi::xml_node nd = add_next ? m_nd.parent().insert_child_after( "w:hyperlink", m_nd )
+		: m_nd.parent().insert_child_before( "w:hyperlink", m_nd );
+	return Hyperlink( Element( nd ) );
+}
+
+Run Hyperlink::AddSiblingRun( bool add_next )
+{
+	pugi::xml_node nd = add_next ? m_nd.parent().insert_child_after( "w:r", m_nd )
+		: m_nd.parent().insert_child_before( "w:r", m_nd );
+	return Run( Element( nd ) );
+}
+
 const char * Run::GetColor() const
 {
 	return m_nd.child( "w:rPr" ).child( "w:color" ).attribute( "w:val" ).value();
@@ -243,10 +362,185 @@ std::string Run::GetText() const
 	return text;
 }
 
+int Run::SetColor( const char * color )
+{
+	//pugi::xml_attribute attr = m_nd.child( "w:rPr" ).child( "w:color" ).attribute( "w:val" );
+	pugi::xml_node nd = m_nd.child( "w:rPr" );
+	if( color == nullptr || color[0] == '\0' ) {
+		if( !nd.empty() ) {
+			nd.remove_child( "w:color" );
+			if( nd.first_child().empty() )
+				m_nd.remove_child( nd );
+		}
+	}
+	else {
+		if( nd.empty() )
+			nd = m_nd.append_child( "w:rPr" );
+		pugi::xml_node nd2 = nd.child( "w:color" );
+		if( nd2.empty() )
+			nd2 = nd.append_child( "w:color" );
+		pugi::xml_attribute attr = nd2.attribute( "w:val" );
+		if( attr.empty() )
+			attr = nd2.append_attribute( "w:val" );
+		attr.set_value( color );
+	}
+	return 0;
+}
+
+int Run::SetHighline( const char * color )
+{
+	//pugi::xml_attribute attr = m_nd.child( "w:rPr" ).child( "w:highlight" ).attribute( "w:val" );
+	pugi::xml_node nd = m_nd.child( "w:rPr" );
+	if( color == nullptr || color[0] == '\0' ) {
+		if( !nd.empty() ) {
+			nd.remove_child( "w:highlight" );
+			if( nd.first_child().empty() )
+				m_nd.remove_child( nd );
+		}
+	}
+	else {
+		if( nd.empty() )
+			nd = m_nd.append_child( "w:rPr" );
+		pugi::xml_node nd2 = nd.child( "w:highlight" );
+		if( nd2.empty() )
+			nd2 = nd.append_child( "w:highlight" );
+		pugi::xml_attribute attr = nd2.attribute( "w:val" );
+		if( attr.empty() )
+			attr = nd2.append_attribute( "w:val" );
+		attr.set_value( color );
+	}
+	return 0;
+}
+
+int Run::SetBold( bool bold )
+{
+	// !m_nd.child( "w:rPr" ).child( "w:b" ).empty();
+	pugi::xml_node nd = m_nd.child( "w:rPr" );
+	if( bold ) {
+		if( nd.empty() )
+			nd = m_nd.append_child( "w:rPr" );
+		pugi::xml_node nd2 = nd.child( "w:b" );
+		if( nd2.empty() )
+			nd2 = nd.append_child( "w:b" );
+	}
+	else {
+		if( !nd.empty() ) {
+			nd.remove_child( "w:b" );
+			if( nd.first_child().empty() )
+				m_nd.remove_child( nd );
+		}
+	}
+	return 0;
+}
+
+int Run::SetItalic( bool italic )
+{
+	// !m_nd.child( "w:rPr" ).child( "w:i" ).empty();
+	pugi::xml_node nd = m_nd.child( "w:rPr" );
+	if( italic ) {
+		if( nd.empty() )
+			nd = m_nd.append_child( "w:rPr" );
+		pugi::xml_node nd2 = nd.child( "w:i" );
+		if( nd2.empty() )
+			nd2 = nd.append_child( "w:i" );
+	}
+	else {
+		if( !nd.empty() ) {
+			nd.remove_child( "w:i" );
+			if( nd.first_child().empty() )
+				m_nd.remove_child( nd );
+		}
+	}
+	return 0;
+}
+
+int Run::SetUnderline( const char * underline )
+{
+	// m_nd.child( "w:rPr" ).child( "w:u" ).attribute( "w:val" ).value();
+	pugi::xml_node nd = m_nd.child( "w:rPr" );
+	if( underline == nullptr || underline[0] == '\0' ) {
+		if( !nd.empty() ) {
+			nd.remove_child( "w:u" );
+			if( nd.first_child().empty() )
+				m_nd.remove_child( nd );
+		}
+	}
+	else {
+		if( nd.empty() )
+			nd = m_nd.append_child( "w:rPr" );
+		pugi::xml_node nd2 = nd.child( "w:u" );
+		if( nd2.empty() )
+			nd2 = nd.append_child( "w:u" );
+		pugi::xml_attribute attr = nd2.attribute( "w:val" );
+		if( attr.empty() )
+			attr = nd2.append_attribute( "w:val" );
+		attr.set_value( underline );
+	}
+	return 0;
+}
+
+int Run::SetStrike( bool strike )
+{
+	// m_nd.child( "w:rPr" ).child( "w:strike" ).empty();
+	pugi::xml_node nd = m_nd.child( "w:rPr" );
+	if( strike ) {
+		if( nd.empty() )
+			nd = m_nd.append_child( "w:rPr" );
+		pugi::xml_node nd2 = nd.child( "w:strike" );
+		if( nd2.empty() )
+			nd2 = nd.append_child( "w:strike" );
+		nd.remove_child( "w:dstrike" );
+	}
+	else {
+		if( !nd.empty() ) {
+			nd.remove_child( "w:strike" );
+			if( nd.first_child().empty() )
+				m_nd.remove_child( nd );
+		}
+	}
+	return 0;
+}
+
+int Run::SetDoubleStrike( bool dstrike )
+{
+	// m_nd.child( "w:rPr" ).child( "w:dstrike" ).empty();
+	pugi::xml_node nd = m_nd.child( "w:rPr" );
+	if( dstrike ) {
+		if( nd.empty() )
+			nd = m_nd.append_child( "w:rPr" );
+		pugi::xml_node nd2 = nd.child( "w:dstrike" );
+		if( nd2.empty() )
+			nd2 = nd.append_child( "w:dstrike" );
+		nd.remove_child( "w:strike" );
+	}
+	else {
+		if( !nd.empty() ) {
+			nd.remove_child( "w:dstrike" );
+			if( nd.first_child().empty() )
+				m_nd.remove_child( nd );
+		}
+	}
+	return 0;
+}
+
 void Run::SetText( const char * text )
 {
 	m_nd.child( "w:t" ).text().set( text );
 	return;
+}
+
+Hyperlink Run::AddSiblingHyperlink( bool add_next )
+{
+	pugi::xml_node nd = add_next ? m_nd.parent().insert_child_after( "w:hyperlink", m_nd )
+		: m_nd.parent().insert_child_before( "w:hyperlink", m_nd );
+	return Hyperlink( Element( nd ) );
+}
+
+Run Run::AddSiblingRun( bool add_next )
+{
+	pugi::xml_node nd = add_next ? m_nd.parent().insert_child_after( "w:r", m_nd )
+		: m_nd.parent().insert_child_before( "w:r", m_nd );
+	return Run( Element( nd ) );
 }
 
 int Table::GetRowNum() const
@@ -282,6 +576,7 @@ std::vector<int> Table::GetColWidth() const
 	}
 	return colWidth;
 }
+
 int Table::GetColWidth( int idx ) const
 {
 	if( idx < 0 )
@@ -293,6 +588,45 @@ int Table::GetColWidth( int idx ) const
 	if( pnd.empty() )
 		return -1;
 	return pnd.attribute( "w:w" ).as_int();
+}
+
+int Table::AddCol( int index, int num )
+{
+	// TODO : update column size
+
+	// add cell to every row
+	return -1;
+}
+
+int Table::DelCol( int index, int num )
+{
+	// TODO : only one column can not delete
+	
+	// update column
+
+	// del cell in every row
+	return -1;
+}
+
+int Table::SetColWidth( const std::vector<int> widths )
+{
+	int num = GetColNum();
+	if( (int)widths.size() != num )
+		return -1;
+	// TODO : 
+	return -1;
+}
+
+int Table::AddRow( int index, int num )
+{
+	// TODO 
+	return -1;
+}
+
+int Table::DelRow( int index, int num )
+{
+	// TODO 
+	return -1;
 }
 
 int TCell::GetSpanNum() const
@@ -339,6 +673,18 @@ std::string TCell::GetText() const
 		text.append( par.GetText() );
 	}
 	return text;
+}
+
+int TCell::SetSpanNum( int num )
+{
+	// TODO :
+	return -1;
+}
+
+int TCell::SetVmergeNum( int num )
+{
+	// TODO : 
+	return -1;
 }
 
 ////////////////////////////////

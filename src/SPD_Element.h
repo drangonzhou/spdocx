@@ -57,17 +57,28 @@ class Document;
 class ElementIterator;
 class ElementRange;
 
+class Paragraph;
+class Hyperlink;
+class Run;
+class Table; 
+class TRow;
+class TCell;
+
 class SPD_API Element
 {
+protected:
+	friend class Document;
+	Element( pugi::xml_node nd );
+
 public:
 	Element() : m_type( ElementTypeE::INVALID ) { }
-	Element( pugi::xml_node nd );
 	Element( const Element & ele ) : m_nd( ele.m_nd ), m_type( ele.m_type ) { }
 	~Element() { m_type = ElementTypeE::INVALID; }
 
+public:
 	Element & operator = ( const Element & ele ) { if( &ele != this ) m_nd = ele.m_nd, m_type = ele.m_type; return *this; }
 
-	bool IsValid() const { return m_type != ElementTypeE::INVALID; }
+	bool IsValid() const { return (m_type != ElementTypeE::INVALID) && (! m_nd.empty()); }
 	operator bool() const { return IsValid(); }
 	bool operator ! () const { return !IsValid(); }
 
@@ -82,6 +93,7 @@ public:
 	const char * GetTag() const { return m_nd.name(); }
 
 	Element GetParent() const;
+	// auto skip some node ( w:t, w:pPr, w:rPr ... ), return INVALID if not found
 	Element GetPrev() const;
 	Element GetNext() const;
 	Element GetFirstChild() const;
@@ -91,10 +103,17 @@ public:
 	inline ElementIterator end() const;
 	inline ElementRange Children() const;
 
-	// TODO : create next/prev element, delete element
+	int DelChild( Element & child );
+	int DelAllChild();
 
 protected:
 	friend class ElementIterator;
+	friend class Paragraph;
+	friend class Hyperlink;
+	friend class Run;
+	friend class Table;
+	friend class TRow;
+	friend class TCell;
 	pugi::xml_node m_nd;
 
 private:
@@ -144,10 +163,16 @@ inline ElementIterator Element::begin() const { return ElementIterator( GetFirst
 inline ElementIterator Element::end() const { return ElementIterator(); }
 inline ElementRange Element::Children() const { return ElementRange(begin(), end()); }
 
+// NOTE : top level is Paragraph or Table
+
 class SPD_API Paragraph : public Element
 {
-private:
+protected:
+	friend class Document;
 	Paragraph( pugi::xml_node nd ) : Element( nd ) { }
+
+public:
+	Paragraph( const Element & ele ) : Element( ele ) { }
 	virtual ~Paragraph() { }
 
 public:
@@ -155,13 +180,27 @@ public:
 	const char * GetStyleName( const Document * doc ) const; // style name, ex : heading 1
 	std::string GetText() const;
 
-	// TODO : modify
+	int SetStyleId( const char * id ); // id must valid in doc
+	int SetStyleName( const char * name, const Document * doc );
+	// Text can not set directly, need to set child run
+
+	// NOTE : child is Run or Hyperlink ( or Bookmark or Comment )
+	Run AddChildRun( bool add_back = true );
+	Hyperlink AddChildHyperlink( bool add_back = true );
+
+	// NOTE : sibling is Paragraph or Table
+	Paragraph AddSiblingParagraph( bool add_next = true );
+	Table AddSiblingTable( bool add_next = true );
 };
 
 class SPD_API Hyperlink : public Element
 {
-private:
+protected:
+	friend class Document;
 	Hyperlink( pugi::xml_node nd ) : Element( nd ) { }
+
+public:
+	Hyperlink( const Element & ele ) : Element( ele ) { }
 	virtual ~Hyperlink() { }
 
 public:
@@ -173,13 +212,26 @@ public:
 	const char * GetTarget( const Document * doc ) const;     // hyperlink target, internal : "media/image1.png", external : "http://xxx.org"
 	std::string GetText() const;
 
-	// TODO : modify
+	int SetAnchor( const char * anchor );
+	int SetRelationshipId( const char * relid );
+	// relationship detail and text need to set through Document
+
+	// NOTE : child is Run
+	Run AddChildRun( bool add_back = true );
+
+	// NOTE : sibling is Hyperlink or Run ( or Bookmark or Comment )
+	Hyperlink AddSiblingHyperlink( bool add_next = true );
+	Run AddSiblingRun( bool add_next = true );
 };
 
 class SPD_API Run : public Element
 {
-private:
+protected:
+	friend class Document;
 	Run( pugi::xml_node nd ) : Element( nd ) { }
+
+public:
+	Run( const Element & ele ) : Element( ele ) { }
 	virtual ~Run() { }
 
 public:
@@ -187,19 +239,35 @@ public:
 	const char * GetHighline() const;  // font bg color, ex : yellow
 	bool GetBold() const;              // font bold 
 	bool GetItalic() const;            // font italic
-	const char * GetUnderline() const; // font underline, ex : "", "singal", "double"
+	const char * GetUnderline() const; // font underline, ex : "", "singal", "double", "dotted"
 	bool GetStrike() const;            // font deleted with strike
-	bool GetDoubleStrike() const;      // font deleted with double strike
+	bool GetDoubleStrike() const;      // font deleted with double strike, can not both exist with strike
 	std::string GetText() const;
 
-	// TODO : modify
+	int SetColor( const char * color );
+	int SetHighline( const char * color );
+	int SetBold( bool bold = true );
+	int SetItalic( bool italic = true );
+	int SetUnderline( const char * underline = "singal" );
+	int SetStrike( bool strike = true );
+	int SetDoubleStrike( bool dstrike = true );
 	void SetText( const char * text );
+
+	// NOTE : no child ( w:t text is skip and handle by Run )
+
+	// NOTE : sibling is Hyperlink or Run ( or Bookmark or Comment )
+	Hyperlink AddSiblingHyperlink( bool add_next = true );
+	Run AddSiblingRun( bool add_next = true );
 };
 
 class SPD_API Table : public Element
 {
-private:
+protected:
+	friend class Document;
 	Table( pugi::xml_node nd ) : Element( nd ) { }
+
+public:
+	Table( const Element & ele ) : Element( ele ) { }
 	virtual ~Table() { }
 
 public:
@@ -210,17 +278,29 @@ public:
 	int GetColWidth( int idx ) const;  
 
 	// TODO : modify
+	int AddCol( int index, int num = 1 ); // insert new column at index, index begin from 0
+	int DelCol( int index, int num = 1 ); // del column at index
+	int SetColWidth( const std::vector<int> widths );
+	int AddRow( int index, int num = 1 );
+	int DelRow( int index, int num = 1 );
+
+	// NOTE : child is Row
 };
 
 class SPD_API TRow : public Element
 {
 private:
+	friend class Document;
 	TRow( pugi::xml_node nd ) : Element( nd ) { }
+
+public:
+	TRow( const Element & ele ) : Element( ele ) { }
 	virtual ~TRow() { }
 
 public:
 	// TODO : modify
 
+	// NOTE : child is Cell
 };
 
 enum class VMergeTypeE : int8_t
@@ -234,15 +314,25 @@ enum class VMergeTypeE : int8_t
 class SPD_API TCell : public Element
 {
 private:
+	friend class Document;
 	TCell( pugi::xml_node nd ) : Element( nd ) { }
+
+public:
+	TCell( const Element & ele ) : Element( ele ) { }
 	virtual ~TCell() { }
 
 public:
-	int GetSpanNum() const;  // 0 means no span
+	int GetSpanNum() const;  // 0 means no span, should not be 1
 	VMergeTypeE GetVMergeType() const;
 	std::string GetText() const;
 
 	// TODO : modify
+	int SetSpanNum( int num ); // 0 means no span, enlarge span will add new sibling TCell
+	// if num == 0 or 1, break exist vmerge if exist, 
+	// if num > 1, create new vmerge start from here, break exist vmerge if exist,
+	int SetVmergeNum( int num );
+
+	// NOTE : child is Paragraph or Table
 };
 
 ////////////////////////////////

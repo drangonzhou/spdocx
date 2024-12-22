@@ -33,7 +33,6 @@ public:
 void SPDDebug::DumpDocument( Document * doc )
 {
 	printf( "[doc] %p\n", doc );
-	printf( "  [zip] %p\n", doc->m_zip );
 	for( auto it = doc->m_style.begin(); it != doc->m_style.end(); ++it ) {
 		printf( "  [style] id [%s], name [%s], type [%s]\n", 
 			it->second.m_id.c_str(), it->second.m_name.c_str(), it->second.m_type.c_str() );
@@ -144,7 +143,7 @@ int main( int argc, char * argv[] )
 	dump_element( &doc, ele, 0 );
 
 	ele = Element(); // nullptr
-	doc.CloseDiscard();
+	doc.Close();
 
 	ret = doc.Open( fname );
 	if( ret < 0 ) {
@@ -164,7 +163,7 @@ int main( int argc, char * argv[] )
 	}
 
 	ele = Element(); // nullptr;
-	doc.SaveClose();
+	doc.Save( "t2.docx" );
 
 	SPD_PR_INFO( "hello %d", 5 );
 
