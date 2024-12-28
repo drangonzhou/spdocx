@@ -273,18 +273,23 @@ public:
 public:
 	int GetRowNum() const;
 	int GetColNum() const;
-	// get column width, total page width maybe 8000+, return -1 if bad idx
+	// get column width, total page width maybe 8100, return -1 if bad idx
 	std::vector<int> GetColWidth() const;
 	int GetColWidth( int idx ) const;  
 
 	// TODO : modify
 	int AddCol( int index, int num = 1 ); // insert new column at index, index begin from 0
 	int DelCol( int index, int num = 1 ); // del column at index
-	int SetColWidth( const std::vector<int> widths );
-	int AddRow( int index, int num = 1 );
-	int DelRow( int index, int num = 1 );
+	int SetColWidth( const std::vector<int> widths ); // min col width is 100, usually shound not < 300
+	
+	int Reset( int row = 1, int col = 1 ); // row and col should >= 1, col should < 80;
 
 	// NOTE : child is Row
+	TRow AddChildTRow( bool add_back = true );
+
+	// NOTE : sibling is Paragraph or Table
+	Paragraph AddSiblingParagraph( bool add_next = true );
+	Table AddSiblingTable( bool add_next = true );
 };
 
 class SPD_API TRow : public Element
@@ -298,9 +303,12 @@ public:
 	virtual ~TRow() { }
 
 public:
-	// TODO : modify
+	// NOTE : no modify
 
-	// NOTE : child is Cell
+	// NOTE : child is Cell, Auto Add, no func
+	
+	// NOTE : sibling is TRow
+	TRow AddSiblingTRow( bool add_next = true );
 };
 
 enum class VMergeTypeE : int8_t
@@ -322,17 +330,21 @@ public:
 	virtual ~TCell() { }
 
 public:
-	int GetSpanNum() const;  // 0 means no span, should not be 1
+	int GetSpanNum() const;  // 1 means no span, should >= 1
 	VMergeTypeE GetVMergeType() const;
+	int GetVMergeNum() const; // 1 means no vmerge, should >= 1,
 	std::string GetText() const;
 
-	// TODO : modify
-	int SetSpanNum( int num ); // 0 means no span, enlarge span will add new sibling TCell
-	// if num == 0 or 1, break exist vmerge if exist, 
-	// if num > 1, create new vmerge start from here, break exist vmerge if exist,
+	// NOTE : modify, only can modify first Cell in span
+	int SetSpanNum( int num ); // 1 means no span, more span num will remove sibling TCell
+	// 1 means no vmerge, more vmerge will set more sibliing TCell VMergeTypeE::CONT
 	int SetVmergeNum( int num );
 
 	// NOTE : child is Paragraph or Table
+	Paragraph AddChildParagraph( bool add_back = true );
+	Table AddChildTable( bool add_back = true );
+
+	// NOTE : can not add sibling TCell directly, use SetSpanNum()
 };
 
 ////////////////////////////////

@@ -17,6 +17,8 @@
 #include "SPD_Element.h"
 #include "SPD_Document.h"
 
+#include <vector>
+
 BEGIN_NS_SPD
 ////////////////////////////////
 
@@ -120,12 +122,18 @@ Element Element::GetFirstChild() const
 
 int Element::DelChild( Element & child )
 {
+	if( m_type == ElementTypeE::TABLE_ROW )  // table row can not delete cell directly
+		return -1;
+	// TODO : if m_type is TABLE, del row, and row has cell is CONT, update prev row.
+
 	bool ret = m_nd.remove_child( child.m_nd );
 	return ret ? 0 : -1;
 }
 
 int Element::DelAllChild()
 {
+	if( m_type == ElementTypeE::TABLE_ROW )  // table row can not delete cell directly
+		return -1;
 	m_nd.remove_children();
 	return 0;
 }
@@ -214,7 +222,9 @@ Table Paragraph::AddSiblingTable( bool add_next )
 {
 	pugi::xml_node nd = add_next ? m_nd.parent().insert_child_after( "w:tbl", m_nd ) 
 		: m_nd.parent().insert_child_before( "w:tbl", m_nd );
-	return Table( Element( nd ) );
+	Table tbl = Element( nd );
+	tbl.Reset();
+	return tbl;
 }
 
 const char * Hyperlink::GetAnchor() const
@@ -613,25 +623,90 @@ int Table::SetColWidth( const std::vector<int> widths )
 	int num = GetColNum();
 	if( (int)widths.size() != num )
 		return -1;
-	// TODO : 
-	return -1;
+	for( auto & w : widths ) {
+		if( w < 100 )
+			return -1;
+	}
+	pugi::xml_node pnd = m_nd.child( "w:tblGrid" );
+	int i;
+	for( i = 0, pnd = pnd.child( "w:gridCol" ); i < num && !pnd.empty(); ++i, pnd = pnd.next_sibling( "w:gridCol" ) )
+	{
+		pnd.attribute( "w:w" ) = widths[i];
+	}
+	if( i != num ) {
+		SPD_PR_DEBUG( "width num not match col num" );
+	}
+
+	return 0;
 }
 
-int Table::AddRow( int index, int num )
+int Table::Reset( int row, int col )
 {
-	// TODO 
-	return -1;
+	if( row < 1 || col < 1 || col > 80 )
+		return -1;
+	int i = 0;
+	pugi::xml_node pnd;
+	pnd = m_nd.child( "w:tblGrid" );
+	if( pnd.empty() ) {
+		pnd = m_nd.prepend_child( "w:tblGrid" );
+	}
+	pnd.remove_children();
+	for( i = 0; i < col; ++i ) {
+		pugi::xml_node cnd = pnd.append_child( "w:gridCol" );
+		cnd.attribute( "w:w" ) = 8100 / col;
+	}
+
+	pnd = m_nd.child( "w:tblPr" );
+	if( pnd.empty() ) {
+		pnd = m_nd.prepend_child( "w:tblPr" );
+	}
+	
+	m_nd.remove_child( "w:tr" );
+	for( i = 0; i < row; ++i ) {
+		pnd = m_nd.append_child( "w:tr" );
+		pnd.append_child( "w:trPr" );
+		int j = 0;
+		for( j = 0; j < col; ++j ) {
+			pugi::xml_node cnd = pnd.append_child( "w:tc" );
+			cnd.append_child( "w:tcPr" );
+		}
+	}
+	return 0;
 }
 
-int Table::DelRow( int index, int num )
+TRow Table::AddChildTRow( bool add_back )
 {
-	// TODO 
-	return -1;
+	pugi::xml_node nd = add_back ? m_nd.append_child( "w:tr" ) : m_nd.prepend_child( "w:tr" );
+	return TRow( Element( nd ) );
+}
+
+Paragraph Table::AddSiblingParagraph( bool add_next )
+{
+	pugi::xml_node nd = add_next ? m_nd.parent().insert_child_after( "w:p", m_nd )
+		: m_nd.parent().insert_child_before( "w:p", m_nd );
+	return Paragraph( Element( nd ) );
+}
+
+Table Table::AddSiblingTable( bool add_next )
+{
+	pugi::xml_node nd = add_next ? m_nd.parent().insert_child_after( "w:tbl", m_nd )
+		: m_nd.parent().insert_child_before( "w:tbl", m_nd );
+	Table tbl = Element( nd );
+	tbl.Reset();
+	return tbl;
+}
+
+TRow TRow::AddSiblingTRow( bool add_next )
+{
+	pugi::xml_node nd = add_next ? m_nd.parent().insert_child_after( "w:tr", m_nd )
+		: m_nd.parent().insert_child_before( "w:tr", m_nd );
+	// TODO : add cell
+	return TRow( Element( nd ) );
 }
 
 int TCell::GetSpanNum() const
 {
-	int span_num = 0;
+	int span_num = 1;
 	pugi::xml_node pnd = m_nd.child( "w:tcPr" ).child( "w:gridSpan" );
 	if( !pnd.empty() )
 		span_num = pnd.attribute( "w:val" ).as_int();
@@ -653,6 +728,33 @@ VMergeTypeE TCell::GetVMergeType() const
 		vmerge_type = VMergeTypeE::NONE;
 	}
 	return vmerge_type;
+}
+
+int TCell::GetVMergeNum() const
+{
+	VMergeTypeE vt = GetVMergeType();
+	if( vt == VMergeTypeE::NONE )
+		return 1;
+	else if( vt == VMergeTypeE::CONT )
+		return -1;
+	else {
+		int num = 1;
+		TCell next = GetNext();
+		while( true )
+		{
+			if( next.GetType() != ElementTypeE::TABLE_CELL )
+				break;
+			if( next.GetVMergeType() != VMergeTypeE::CONT )
+				break;
+			++num;
+			next = next.GetNext();
+		}
+		if( num == 1 ) {
+			SPD_PR_DEBUG( "vmerge start no vmerge cont" );
+		}
+		return num;
+	}
+	return -1; // never here
 }
 
 std::string TCell::GetText() const
@@ -677,14 +779,95 @@ std::string TCell::GetText() const
 
 int TCell::SetSpanNum( int num )
 {
-	// TODO :
-	return -1;
+	if( num < 1 )
+		return -1;
+	if( GetVMergeType() == VMergeTypeE::CONT )
+		return -1;
+	int old_num = GetSpanNum();
+	if( num == old_num ) {
+		return 0;
+	}
+	else if( num < old_num ) {
+		if( num == 1 ) {
+			m_nd.child( "w:tcPr" ).remove_child( "w:gridSpan" );
+		}
+		else {
+			pugi::xml_node pnd = m_nd.child( "w:tcPr" ).child( "w:gridSpan" );
+			pnd.attribute( "w:val" ) = num;
+		}
+		pugi::xml_node parent = m_nd.parent();
+		pugi::xml_node last_nd = m_nd;
+		for( int i = num; i < old_num; ++i ) {
+			pugi::xml_node nnd = parent.insert_child_after( "w:tc", last_nd );
+			nnd.append_child( "w:tcPr" );
+			last_nd = nnd;
+		}
+		// TODO : if VMergeTypeE::START, also set following Vmerge Cell
+	}
+	else {
+		// merge node to this
+		int merge_num = num - old_num;
+		std::vector< pugi::xml_node > merge_nds;
+		merge_nds.resize( merge_num );
+		pugi::xml_node last_nd = m_nd;
+		int find_num = 0;
+		while( 1 ) {
+			pugi::xml_node nnd = last_nd.next_sibling();
+			if( nnd.empty() )
+				break;
+			if( strcmp( nnd.name(), "w:tc" ) != 0 ) {
+				last_nd = nnd;
+				continue;
+			}
+			merge_nds[find_num++] = nnd;
+			last_nd = nnd;
+			if( find_num == merge_num )
+				break;
+		}
+		if( find_num != merge_num )
+			return -1;
+
+		// set current node gridSpan, merge other cell to this
+		pugi::xml_node pnd = m_nd.child( "w:tcPr" ).child( "w:gridSpan" );
+		if( pnd.empty() ) {
+			pnd = m_nd.child( "w:tcPr" ).append_child( "w:gridSpan" );
+		}
+		pnd.attribute( "w:val" ) = num;
+		for( int i = 0; i < merge_num; ++i ) {
+			pnd = merge_nds[i];
+			pugi::xml_node cnd = pnd.first_child();
+			while( !cnd.empty() ) {
+				pugi::xml_node next = cnd.next_sibling();
+				if( strcmp( cnd.name(), "w:p" ) == 0 || strcmp( cnd.name(), "w:tbl" ) == 0 )
+					m_nd.append_move( cnd );
+				cnd = next;
+			}
+			m_nd.parent().remove_child( pnd );
+		}
+		// TODO : if VMergeTypeE::START, also set following Vmerge Cell
+	}
+	return 0; 
 }
 
 int TCell::SetVmergeNum( int num )
 {
-	// TODO : 
+	// TODO : need to check following row enough or not
+	// TODO : need to deal with span in following row
 	return -1;
+}
+
+Paragraph TCell::AddChildParagraph( bool add_back )
+{
+	pugi::xml_node nd = add_back ? m_nd.append_child( "w:p" ) : m_nd.prepend_child( "w:p" );
+	return Paragraph( Element( nd ) );
+}
+
+Table TCell::AddChildTable( bool add_back )
+{
+	pugi::xml_node nd = add_back ? m_nd.append_child( "w:tbl" ) : m_nd.prepend_child( "w:tbl" );
+	Table tbl = Element( nd );
+	tbl.Reset();
+	return tbl;
 }
 
 ////////////////////////////////

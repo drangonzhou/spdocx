@@ -317,7 +317,9 @@ Table Document::AddChildTable( bool add_back )
 {
 	pugi::xml_node parent = m_doc.document_element().first_child();
 	pugi::xml_node nd = add_back ? parent.append_child( "w:tbl" ) : parent.prepend_child( "w:tbl" );
-	return Table( ( Element( pugi::xml_node() ) ) );
+	Table tbl = Element( nd );
+	tbl.Reset();
+	return tbl;
 }
 
 int Document::DelChild( Element & child )
