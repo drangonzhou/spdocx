@@ -17,8 +17,8 @@
 #ifndef INCLUDED_SPD_COMMON_H
 #define INCLUDED_SPD_COMMON_H
 
-#include <stdarg.h>
-#include <atomic>
+//#include <stdarg.h>
+//#include <atomic>
 
 #ifdef _WIN32
 #ifdef LIBSPDOCX_EXPORTS
@@ -145,3 +145,4 @@ SPD_API int SPD_SetLogFuncLevel( SPD_LogFunc_t func, int level );
 END_NS_SPD
 
 #endif // INCLUDED_SPD_COMMON_H
+

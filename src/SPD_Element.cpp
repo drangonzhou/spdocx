@@ -18,6 +18,7 @@
 #include "SPD_Document.h"
 
 #include <vector>
+#include <string.h> // strcmp
 
 BEGIN_NS_SPD
 ////////////////////////////////
@@ -765,7 +766,7 @@ std::string TCell::GetText() const
 	for( Element ele = GetFirstChild(); ele.IsValid(); ele = ele.GetNext() ) {
 		if( ele.GetType() != ElementTypeE::PARAGRAPH )
 			continue;
-		Paragraph & par = static_cast<Paragraph &>( ele );
+		Paragraph par = ele;
 		if( is_first ) {
 			is_first = false;
 		}

@@ -18,7 +18,7 @@
 #include "zip.h"
 
 #include <memory>
-#include <cstring>
+#include <string.h> // strcmp
 
 BEGIN_NS_SPD
 ////////////////////////////////
@@ -73,7 +73,7 @@ int Document::read_zip( const std::string & fname, std::map< std::string, std::v
 		std::vector<char> & fbuf = files[zstat.name];
 		fbuf.resize( zstat.size + 1 );
 		zip_int64_t rdsize = zip_fread( zfile, &fbuf[0], zstat.size );
-		if( rdsize != zstat.size ) {
+		if( rdsize != (int64_t)zstat.size ) {
 			SPD_PR_DEBUG( "zip_stat() [%d] read file error, fsize %d, read %d", (int)zstat.size, (int)rdsize );
 		}
 		fbuf[rdsize] = '\0';
@@ -370,3 +370,4 @@ const Relationship * Document::GetRelationship( const char * id ) const
 
 ////////////////////////////////
 END_NS_SPD
+

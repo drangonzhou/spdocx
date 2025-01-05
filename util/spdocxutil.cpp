@@ -59,14 +59,14 @@ static void dump_element( const Document * doc, Element ele, int level )
 		{
 		case ElementTypeE::PARAGRAPH :
 		{
-			Paragraph & par = static_cast< Paragraph & >( ele );
+			Paragraph par = ele;
 			printf( "<style> [%s]\n", par.GetStyleName( doc ) );
 			printf( "<text> [%s]\n", par.GetText().c_str() );
 		}
 			break;
 		case ElementTypeE::HYPERLINK :
 		{
-			Hyperlink & hlk = static_cast< Hyperlink & >( ele );
+			Hyperlink hlk = ele;
 			printf( "<anchor> [%s]\n", hlk.GetAnchor() );
 			printf( "<linkType> [%s]\n", hlk.GetLinkType( doc ) );
 			printf( "<target> mode [%s] : [%s]\n", hlk.GetTargetMode( doc ), hlk.GetTarget( doc ) );
@@ -75,7 +75,7 @@ static void dump_element( const Document * doc, Element ele, int level )
 			break;
 		case ElementTypeE::RUN :
 		{
-			Run & run = static_cast< Run & >( ele );
+			Run run = ele;
 			printf( "<color> [%s], <hightline> [%s]\n", run.GetColor(), run.GetHighline() );
 			printf( "<bold> [%s], <italic> [%s], <underline> [%s], <strike> [%s], <dstrike> [%s]\n", 
 				run.GetBold() ? "true" : "false",
@@ -88,7 +88,7 @@ static void dump_element( const Document * doc, Element ele, int level )
 			break;
 		case ElementTypeE::TABLE :
 		{
-			Table & tbl = static_cast< Table & >( ele );
+			Table tbl = ele;
 			printf( "<table> Row %d, Col %d, width [", tbl.GetRowNum(), tbl.GetColNum() );
 			for( int i = 0; i < tbl.GetColNum(); ++i ) {
 				if( i != 0 )
@@ -103,7 +103,7 @@ static void dump_element( const Document * doc, Element ele, int level )
 			break;
 		case ElementTypeE::TABLE_CELL :
 		{
-			TCell & tc = static_cast< TCell & >( ele );
+			TCell tc = ele;
 			printf( "<table cell> span %d, vmerge %d\n", tc.GetSpanNum(), (int)tc.GetVMergeType() );
 			printf( "<text> [%s]", tc.GetText().c_str() );
 		}
@@ -153,7 +153,7 @@ int main( int argc, char * argv[] )
 	ele = doc.GetFirstElement();
 	ele = ele.GetFirstChild();
 	if( ele.GetType() == ElementTypeE::RUN ) {
-		Run & run = static_cast< Run &>( ele );
+		Run run = ele;
 		// TODO : test
 		int tt = (int)time( NULL );
 		std::string str = std::to_string( tt );
@@ -169,3 +169,4 @@ int main( int argc, char * argv[] )
 
 	return 0;
 }
+

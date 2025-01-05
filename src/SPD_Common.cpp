@@ -16,8 +16,16 @@
 
 #include "SPD_Common.h"
 
+#ifdef _WIN32
 #include <windows.h>
+#else
+#include <sys/time.h>
+#include <time.h>
+#endif
+
 #include <stdio.h>
+#include <stdarg.h>
+#include <string.h>
 
 BEGIN_NS_SPD
 ////////////////////////////////
@@ -63,9 +71,9 @@ SPD_API void SPD_PrintLog( int level, const char * file, int line, const char * 
 	struct timeval tv;
 	gettimeofday( &tv, NULL );
 	struct tm mytm;
-	localtime_r( &tv, &mytm );
+	localtime_r( &tv.tv_sec, &mytm );
 	len = snprintf( buf, sizeof( buf ) - 1, "%02d%02d %02d:%02d:%02d.%06d %s:%d [%s] ",
-		mytm.tm_mon, mytm.tm_mday, mytm.tm_hour, mytm.tm_min, mytm.tm_sec, tv.tv_usec,
+		mytm.tm_mon, mytm.tm_mday, mytm.tm_hour, mytm.tm_min, mytm.tm_sec, (int)tv.tv_usec,
 		get_file_name( file ), line, s_level_str[level] );
 #endif
 
@@ -99,3 +107,4 @@ SPD_API int SPD_SetLogFuncLevel( SPD_LogFunc_t func, int level )
 
 ////////////////////////////////
 END_NS_SPD
+
