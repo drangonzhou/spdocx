@@ -1,5 +1,5 @@
 // SPD_Def.h : spdocx common define
-// Copyright (C) 2021 ~ 2021 drangon <drangon_zhou (at) hotmail.com>
+// Copyright (C) 2021 ~ 2025 drangon <drangon_zhou (at) hotmail.com>
 //
 // This program is free software: you can redistribute it and/or modify it
 // under the terms of the GNU Lesser General Public License as published by
@@ -107,4 +107,3 @@ SPD_API int SPD_SetLogFuncLevel( SPD_LogFunc_t func, int level )
 
 ////////////////////////////////
 END_NS_SPD
-

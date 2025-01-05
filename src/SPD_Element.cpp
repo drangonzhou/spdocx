@@ -1,5 +1,5 @@
 // SPD_Element.cpp : spdocx docx element
-// Copyright (C) 2021 ~ 2021 drangon <drangon_zhou (at) hotmail.com>
+// Copyright (C) 2021 ~ 2025 drangon <drangon_zhou (at) hotmail.com>
 //
 // This program is free software: you can redistribute it and/or modify it
 // under the terms of the GNU Lesser General Public License as published by
@@ -22,8 +22,6 @@
 
 BEGIN_NS_SPD
 ////////////////////////////////
-
-// DLL export template 
 
 static bool is_skipped_node( pugi::xml_node nd )
 {

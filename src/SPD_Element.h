@@ -1,5 +1,5 @@
 // SPD_Element.h : spdocx docx element
-// Copyright (C) 2021 ~ 2021 drangon <drangon_zhou (at) hotmail.com>
+// Copyright (C) 2021 ~ 2025 drangon <drangon_zhou (at) hotmail.com>
 //
 // This program is free software: you can redistribute it and/or modify it
 // under the terms of the GNU Lesser General Public License as published by
@@ -351,4 +351,3 @@ public:
 END_NS_SPD
 
 #endif // INCLUDED_SPD_ELEMENT_H
-

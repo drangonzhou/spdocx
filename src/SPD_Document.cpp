@@ -1,5 +1,5 @@
 // SPD_Document.cpp : spdocx document
-// Copyright (C) 2021 ~ 2021 drangon <drangon_zhou (at) hotmail.com>
+// Copyright (C) 2021 ~ 2025 drangon <drangon_zhou (at) hotmail.com>
 //
 // This program is free software: you can redistribute it and/or modify it
 // under the terms of the GNU Lesser General Public License as published by
@@ -15,8 +15,8 @@
 // along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "SPD_Document.h"
-#include "zip.h"
 
+#include <zip.h>
 #include <memory>
 #include <string.h> // strcmp
 
@@ -188,8 +188,9 @@ int Document::Save( const std::string & fname )
 	// TODO : style and rela
 
 	// save zip file
-	if( !fname.empty() )
+	if( !fname.empty() ) {
 		m_fname = fname;
+	}
 	if( m_fname.empty() ) {
 		SPD_PR_INFO( "error empty zip filename" );
 		return SPD_ERR_SAVE_ZIP;
@@ -370,4 +371,3 @@ const Relationship * Document::GetRelationship( const char * id ) const
 
 ////////////////////////////////
 END_NS_SPD
-
