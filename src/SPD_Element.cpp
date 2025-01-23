@@ -149,6 +149,12 @@ const char * Paragraph::GetStyleName( const Document * doc ) const
 	return doc->GetStyleName( attr.value() );
 }
 
+const char * Paragraph::GetNumid() const
+{
+	pugi::xml_attribute attr = m_nd.child( "w:pPr" ).child( "w:numPr" ).child( "w:numId" ).attribute( "w:val" );
+	return attr.value();
+}
+
 int Paragraph::SetStyleId( const char * id )
 {
 	//pugi::xml_attribute attr = m_nd.child( "w:pPr" ).child( "w:pStyle" ).attribute( "w:val" );
@@ -178,6 +184,36 @@ int Paragraph::SetStyleName( const char * name, const Document * doc )
 {
 	const char * id = doc->GetStyleId( name );
 	return SetStyleId( id );
+}
+
+int Paragraph::SetNumid( const char * id )
+{
+	//pugi::xml_attribute attr = m_nd.child( "w:pPr" ).child( "w:numPr" ).child( "w:numId" ).attribute( "w:val" );
+	pugi::xml_node nd = m_nd.child( "w:pPr" );
+	if( nd.empty() ) {
+		nd = m_nd.append_child( "w:pPr" );
+	}
+	pugi::xml_node nd2 = nd.child( "w:numPr" );
+	if( nd2.empty() ) {
+		nd2 = nd.append_child( "w:numPr" );
+	}
+	pugi::xml_node nd3 = nd2.child( "w:numId" );
+	if( id == nullptr || id[0] == '\0' ) {
+		if( nd3 ) {
+			nd2.remove_child( "w:numId" );
+		}
+	}
+	else {
+		if( nd3.empty() ) {
+			nd3 = nd2.append_child( "w:numId" );
+		}
+		pugi::xml_attribute attr = nd3.attribute( "w:val" );
+		if( attr.empty() ) {
+			attr = nd3.append_attribute( "w:val" );
+		}
+		attr.set_value( id );
+	}
+	return 0;
 }
 
 std::string Paragraph::GetText() const

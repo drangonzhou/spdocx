@@ -178,10 +178,12 @@ public:
 public:
 	const char * GetStyleId() const;
 	const char * GetStyleName( const Document * doc ) const; // style name, ex : heading 1
+	const char * GetNumid() const;
 	std::string GetText() const;
 
 	int SetStyleId( const char * id ); // id must valid in doc
 	int SetStyleName( const char * name, const Document * doc );
+	int SetNumid( const char * id ); // empty means remove numid, use style default, TODO : numlevel
 	// Text can not set directly, need to set child run
 
 	// NOTE : child is Run or Hyperlink ( or Bookmark or Comment )

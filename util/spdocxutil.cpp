@@ -116,16 +116,9 @@ static void dump_element( const Document * doc, Element ele, int level )
 	return;
 }
 
-int main( int argc, char * argv[] )
+
+static int dumpinfo( const char * fname )
 {
-	if( argc < 2 ) {
-		printf( "Usage: %s <docx file>\n", argv[0] );
-		return -1;
-	}
-
-	spd::SPD_SetLogFuncLevel( nullptr, SPD_LOG_LEVEL_DEBUG );
-
-	const char * fname = argv[1];
 	int ret;
 	Document doc;
 	ret = doc.Open( fname );
@@ -165,8 +158,57 @@ int main( int argc, char * argv[] )
 	ele = Element(); // nullptr;
 	doc.Save( "t2.docx" );
 
-	SPD_PR_INFO( "hello %d", 5 );
-
 	return 0;
 }
 
+static int dumpdirjson( const char * fname )
+{
+	int ret;
+	Document doc;
+	ret = doc.Open( fname );
+	if( ret < 0 ) {
+		printf( "doc.Open() ret %d\n", ret );
+	}
+	for( auto & ele : doc )
+	{
+		if( ele.GetType() != ElementTypeE::PARAGRAPH )
+			continue;
+
+	}
+	doc.Close();
+	return 0;
+}
+
+static int usage()
+{
+	printf( "%s", R"(Usage: spdocxutil <cmd> <params>
+  usage | help        : show this usage
+  dumpinfo            : dump docx info
+  dumpdirjson         : dump docx dir in json
+)" );
+	return 0;
+}
+
+int main( int argc, char * argv[] )
+{
+	if( argc < 2 ) {
+		usage();
+		return -1;
+	}
+
+	spd::SPD_SetLogFuncLevel( nullptr, SPD_LOG_LEVEL_DEBUG );
+	SPD_PR_INFO( "hello %d", 5 );
+
+	if( strcmp( argv[1], "dumpinfo" ) == 0 && argc >= 3 ) {
+		dumpinfo( argv[2] );
+	}
+	else if( strcmp( argv[1], "dumpdirjson" ) == 0 && argc >= 3 ) {
+		dumpdirjson( argv[2] );
+	}
+	else {
+		printf( "[ERR] unknown cmd or bad params\n" );
+		usage();
+	}
+
+	return 0;
+}

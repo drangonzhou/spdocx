@@ -23,6 +23,142 @@
 BEGIN_NS_SPD
 ////////////////////////////////
 
+static const char * s_content_type = R"(<?xml encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+    <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml" />
+    <Default Extension="xml" ContentType="application/xml" />
+    <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml" />
+    <Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml" />
+    <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml" />
+    <Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml" />
+    <Override PartName="/word/webSettings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.webSettings+xml" />
+    <Override PartName="/word/fontTable.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml" />
+    <Override PartName="/word/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml" />
+    <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml" />
+    <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml" />
+</Types>
+)";
+
+static const char * s_docprops_app = R"(<?xml encoding="UTF-8" standalone="yes"?>
+<Properties 
+    xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" 
+    xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
+    <Template>Normal.dotm</Template>
+    <TotalTime>0</TotalTime>
+    <Application>spdocx</Application>
+    <DocSecurity>0</DocSecurity>
+</Properties>
+)";
+
+static const char * s_docprops_core = R"(<?xml encoding="UTF-8" standalone="yes"?>
+<cp:coreProperties 
+    xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" 
+    xmlns:dc="http://purl.org/dc/elements/1.1/" 
+    <dc:title></dc:title>
+    <dc:subject></dc:subject>
+    <dc:creator>spdocx</dc:creator>
+    <dc:description></dc:description>
+    <cp:keywords></cp:keywords>
+    <cp:lastModifiedBy>spdocx</cp:lastModifiedBy>
+    <cp:revision>1</cp:revision>
+</cp:coreProperties>
+)";
+
+static const char * s_rels_rels = R"(<?xml encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+    <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
+    <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+    <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>
+)";
+
+static const char * s_word_document = R"(<?xml encoding="UTF-8" standalone="yes"?>
+<w:document 
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+    xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" 
+    xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" 
+    xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" 
+    mc:Ignorable="w14 w15">
+    <w:body>
+        <w:p w:rsidR="00C35A5F" w:rsidRDefault="00C35A5F" w:rsidP="00C35A5F"/>
+    </w:body>
+</w:document>
+)";
+
+static const char * s_word_styles = R"(<?xml encoding="UTF-8" standalone="yes"?>
+<w:styles 
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+    xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" 
+    xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" 
+    xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" 
+    mc:Ignorable="w14 w15">
+    <w:docDefaults>
+        <w:rPrDefault>
+            <w:rPr>
+                <w:rFonts w:asciiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:hAnsiTheme="minorHAnsi" w:cstheme="minorBidi"/>
+                <w:kern w:val="2"/>
+                <w:sz w:val="21"/>
+                <w:szCs w:val="22"/>
+                <w:lang w:val="en-US" w:eastAsia="zh-CN" w:bidi="ar-SA"/>
+            </w:rPr>
+        </w:rPrDefault>
+        <w:pPrDefault/>
+    </w:docDefaults>
+    <w:style w:type="paragraph" w:default="1" w:styleId="a">
+        <w:name w:val="Normal"/>
+        <w:qFormat/>
+        <w:rsid w:val="00763DC6"/>
+        <w:pPr>
+            <w:widowControl w:val="0"/>
+            <w:jc w:val="both"/>
+        </w:pPr>
+        <w:rPr>
+            <w:szCs w:val="21"/>
+        </w:rPr>
+    </w:style>
+    <w:style w:type="paragraph" w:styleId="1">
+        <w:name w:val="heading 1"/>
+        <w:basedOn w:val="a"/>
+        <w:next w:val="20"/>
+        <w:link w:val="10"/>
+        <w:uiPriority w:val="9"/>
+        <w:qFormat/>
+        <w:rsid w:val="00A2258A"/>
+        <w:pPr>
+            <w:keepNext/>
+            <w:keepLines/>
+            <w:numPr>
+                <w:numId w:val="22"/>
+            </w:numPr>
+            <w:spacing w:before="340" w:after="330" w:line="578" w:lineRule="auto"/>
+            <w:outlineLvl w:val="0"/>
+        </w:pPr>
+        <w:rPr>
+            <w:rFonts w:ascii="Times New Roman" w:eastAsia="ºÚÌå" w:hAnsi="Times New Roman"/>
+            <w:b/>
+            <w:bCs/>
+            <w:kern w:val="44"/>
+            <w:sz w:val="44"/>
+            <w:szCs w:val="44"/>
+        </w:rPr>
+    </w:style>
+</w:styles>
+)";
+// TODO : more style,
+
+// TODO : numbering.xml
+
+static const char * s_word_rels = R"(<?xml encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+    <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>
+    <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+    <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>
+    <Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml"/>
+    <Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable" Target="fontTable.xml"/>
+    <Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/webSettings" Target="webSettings.xml"/>
+</Relationships>
+)";
+
 Document::Document()
 {
 	 
@@ -35,11 +171,21 @@ Document::~Document()
 
 int Document::New()
 {
-	int ret = 0;
 	Close();
-	// TODO : set default style
-	// TODO : need impl
-	return -1;
+
+	m_files["[Content_Types].xml"].assign( s_content_type, s_content_type + strlen( s_content_type ) );
+	m_files["docProps/app.xml"].assign( s_docprops_app, s_docprops_app + strlen( s_docprops_app ) );
+	m_files["docProps/core.xml"].assign( s_docprops_core, s_docprops_core + strlen( s_docprops_core ) );
+	m_files["_rels/.rels"].assign( s_rels_rels, s_rels_rels + strlen( s_rels_rels ) );
+	m_files["word/document.xml"].assign( s_word_document, s_word_document + strlen( s_word_document ) );
+	m_files["word/styles.xml"].assign( s_word_styles, s_word_styles + strlen( s_word_styles ) );
+	m_files["word/_rels/document.xml.rels"].assign( s_word_styles, s_word_styles + strlen( s_word_styles ) );
+
+	int ret = SPD_ERR_ERROR;
+	if( ( ret = parse_files() ) != SPD_ERR_OK ) {
+		Close();
+	}
+	return SPD_ERR_OK;
 }
 
 int Document::read_zip( const std::string & fname, std::map< std::string, std::vector<char> > & files )
@@ -122,13 +268,23 @@ int Document::Open( const std::string & fname )
 {
 	Close();
 
-	int ret = -1;
+	int ret = SPD_ERR_ERROR;
 	if( ( ret = read_zip( fname, m_files ) ) < 0 )
 		return ret;
+	if( ( ret = parse_files()) != SPD_ERR_OK ) {
+		Close();
+	}
+	else {
+		m_fname = fname;
+	}
+	return ret;
+}
 
+int Document::parse_files()
+{
+	int ret = SPD_ERR_ERROR;
 	if( (ret = read_xml( "word/document.xml", &m_doc )) < 0 ) {
 		SPD_PR_INFO( "read_zip_xml() [word/document.xml] failed, err %d", ret );
-		Close();
 		return ret;
 	}
 
@@ -136,19 +292,15 @@ int Document::Open( const std::string & fname )
 	pugi::xml_node nd = m_doc.document_element();
 	if( strcmp( nd.name(), "w:document" ) != 0 || strcmp( nd.first_child().name(), "w:body" ) != 0 ) {
 		SPD_PR_INFO( "bad xml content" );
-		Close();
 		return SPD_ERR_OPEN_XML;
 	}
 
 	if (load_style() < 0) {
 		SPD_PR_INFO("bad style content");
-		Close();
 		return SPD_ERR_OPEN_XML;
 	}
 
 	load_rela();  // ignore error
-
-	m_fname = fname;
 
 	return SPD_ERR_OK;
 }
@@ -181,13 +333,7 @@ int Document::write_xml( const std::string & fname, const pugi::xml_document & d
 
 int Document::Save( const std::string & fname )
 {
-	int ret = -1;
-
-	write_xml( "word/document.xml", m_doc );
-	
-	// TODO : style and rela
-
-	// save zip file
+	int ret = SPD_ERR_ERROR;
 	if( !fname.empty() ) {
 		m_fname = fname;
 	}
@@ -195,6 +341,12 @@ int Document::Save( const std::string & fname )
 		SPD_PR_INFO( "error empty zip filename" );
 		return SPD_ERR_SAVE_ZIP;
 	}
+
+	write_xml( "word/document.xml", m_doc );
+	
+	// TODO : style and rela
+
+	// save zip file
 	if( ( ret = write_zip( m_fname, m_files ) ) != SPD_ERR_OK ) {
 		return ret;
 	}
@@ -236,6 +388,21 @@ int Document::load_style()
 			style.m_id = id;
 			style.m_type = nd.attribute( "w:type" ).value();
 			style.m_name = nd.child( "w:name" ).attribute( "w:val" ).value();
+			pugi::xml_node ppr = nd.child( "w:pPr" );
+			if( ppr ) {
+				pugi::xml_node numid = ppr.child( "w:numPr" );
+				if( numid )
+					numid = numid.child( "w:numId" );
+				if( numid ) {
+					style.m_pnumid = numid.attribute( "w:val" ).value();
+				}
+				else {
+					style.m_pnumid = "";
+				}
+			}
+			else {
+				style.m_pnumid = "";
+			}
 		}
 		else if( strcmp( nd.name(), "w:docDefaults" ) == 0 || strcmp( nd.name(), "w:latentStyles" ) == 0 ) {
 			// Ignore

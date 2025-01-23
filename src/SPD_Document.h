@@ -34,6 +34,7 @@ public:
 	std::string m_id;
 	std::string m_type;  // paragraph, table, character ...
 	std::string m_name;
+	std::string m_pnumid;  // <w:pPr><w:numId w:val="0"/>
 };
 
 class SPD_API Relationship
@@ -57,6 +58,7 @@ public:
 	int Close();
 	bool IsValid() const { return ! m_files.empty(); }
 	bool IsModified() const { return m_isModified; }
+	std::string GetFileName() const { return m_fname; }
 
 	// Paragraph or Table, or other Element ( Section )
 	// If no Element, auto create an empty Paragraph
@@ -80,6 +82,7 @@ protected:
 	static int read_zip( const std::string & fname, std::map< std::string, std::vector<char> > & files );
 	static int write_zip( const std::string & fname, const std::map< std::string, std::vector<char> > & files );
 
+	int parse_files();
 	int read_xml( const std::string & fname, pugi::xml_document * doc ) const;
 	int write_xml( const std::string & fname, const pugi::xml_document & doc );
 	int load_style();
