@@ -6,6 +6,9 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libspdocx", "libspdocx.vcxproj", "{AB790BD6-7998-4DA6-8A9D-CE6617B2E4AD}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "spdocxutil", "spdocxutil.vcxproj", "{84F6CE8F-0EDA-425A-8E23-E29B78B58E28}"
+	ProjectSection(ProjectDependencies) = postProject
+		{AB790BD6-7998-4DA6-8A9D-CE6617B2E4AD} = {AB790BD6-7998-4DA6-8A9D-CE6617B2E4AD}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
