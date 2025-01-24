@@ -43,16 +43,3 @@ install tools : cmake-3.20
 (5) build dll project, win32 and x64 release
 
 
-[jsoncpp]
-
-(1) download jsoncpp-1.9.4.zip from https://github.com/open-source-parsers/jsoncpp
-(2) unzip jsoncpp-1.9.4.zip
-(3) add the following lines to include/json/config.h
-
-#define JSON_USE_EXCEPTION 0
-#define JSON_DLL
-
-(4) create bd dir and run : cmake -G "Visual Studio 16 2019" .. 
-(5) build jsoncpp_lib project, x64 releasse
-(6) create bd2 dir and run : cmake -G "Visual Studio 16 2019" -A Win32 .. 
-(7) build jsoncpp_lib project, win32 releasse
