@@ -27,6 +27,8 @@
 #define SPD_API
 #endif // _WIN32 else
 
+#define SPD_LIB_VERSION "0.4.1"
+
 #define BEGIN_NS_SPD namespace spd {
 #define END_NS_SPD }
 
@@ -75,6 +77,8 @@ typedef void ( *SPD_LogFunc_t )( const char * log_msg );
 // default function is log to stderr and default level is SPD_LOG_LEVEL_INFO
 // can set to custom function, set func to nullptr means restore to defalt stderr
 SPD_API int SPD_SetLogFuncLevel( SPD_LogFunc_t func, int level );
+
+SPD_API const char * SPD_GetLibVersion();
 
 ////////////////////////////////
 END_NS_SPD

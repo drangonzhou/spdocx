@@ -44,38 +44,44 @@ static bool is_skipped_node( pugi::xml_node nd )
 
 Element::Element( pugi::xml_node nd ) : m_nd( nd )
 {
+	m_type = Element::GetNodeType( nd );
+}
+
+ElementTypeE Element::GetNodeType( pugi::xml_node nd )
+{
+	ElementTypeE type = ElementTypeE::INVALID;
 	if( !nd ) {
-		m_type = ElementTypeE::INVALID;
+		type = ElementTypeE::INVALID;
 	}
 	else if( strcmp( nd.name(), "w:p" ) == 0 ) {
-		m_type = ElementTypeE::PARAGRAPH;
+		type = ElementTypeE::PARAGRAPH;
 	}
 	else if( strcmp( nd.name(), "w:r" ) == 0 ) {
 		if( !nd.child( "w:t" ).empty() ) {
-			m_type = ElementTypeE::RUN;
+			type = ElementTypeE::RUN;
 		}
 		// TODO (later) : other w:r, ex w:commentReference
 		else {
-			m_type = ElementTypeE::UNKNOWN;
+			type = ElementTypeE::UNKNOWN;
 		}
 	}
 	else if( strcmp( nd.name(), "w:hyperlink" ) == 0 ) {
-		m_type = ElementTypeE::HYPERLINK;
+		type = ElementTypeE::HYPERLINK;
 	}
 	else if( strcmp( nd.name(), "w:tbl" ) == 0 ) {
-		m_type = ElementTypeE::TABLE;
+		type = ElementTypeE::TABLE;
 	}
 	else if( strcmp( nd.name(), "w:tr" ) == 0 ) {
-		m_type = ElementTypeE::TABLE_ROW;
+		type = ElementTypeE::TABLE_ROW;
 	}
 	else if( strcmp( nd.name(), "w:tc" ) == 0 ) {
-		m_type = ElementTypeE::TABLE_CELL;
+		type = ElementTypeE::TABLE_CELL;
 	}
 	// TODO (later) : other known element
 	else {
-		m_type = ElementTypeE::UNKNOWN;
+		type = ElementTypeE::UNKNOWN;
 	}
-	return;
+	return type;
 }
 
 Element Element::GetParent() const
@@ -115,6 +121,36 @@ Element Element::GetFirstChild() const
 		return Element();
 	pugi::xml_node nd = m_nd.first_child();
 	while( ! nd.empty() && is_skipped_node( nd ) )
+		nd = nd.next_sibling();
+	return Element( nd );
+}
+
+Element Element::GetPrev( ElementTypeE type ) const
+{
+	if( m_type == ElementTypeE::INVALID )
+		return Element();
+	pugi::xml_node nd = m_nd.previous_sibling();
+	while( !nd.empty() && GetNodeType( nd ) != type )
+		nd = nd.previous_sibling();
+	return Element( nd );
+}
+
+Element Element::GetNext( ElementTypeE type ) const
+{
+	if( m_type == ElementTypeE::INVALID )
+		return Element();
+	pugi::xml_node nd = m_nd.next_sibling();
+	while( !nd.empty() && GetNodeType( nd ) != type )
+		nd = nd.next_sibling();
+	return Element( nd );
+}
+
+Element Element::GetChild( ElementTypeE type ) const
+{
+	if( m_type == ElementTypeE::INVALID || m_type == ElementTypeE::UNKNOWN )
+		return Element();
+	pugi::xml_node nd = m_nd.first_child();
+	while( !nd.empty() && GetNodeType(nd) != type )
 		nd = nd.next_sibling();
 	return Element( nd );
 }

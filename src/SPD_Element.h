@@ -75,6 +75,8 @@ public:
 	Element( const Element & ele ) : m_nd( ele.m_nd ), m_type( ele.m_type ) { }
 	~Element() { m_type = ElementTypeE::INVALID; }
 
+	static ElementTypeE GetNodeType( pugi::xml_node nd );
+
 public:
 	Element & operator = ( const Element & ele ) { if( &ele != this ) m_nd = ele.m_nd, m_type = ele.m_type; return *this; }
 
@@ -97,6 +99,10 @@ public:
 	Element GetPrev() const;
 	Element GetNext() const;
 	Element GetFirstChild() const;
+
+	Element GetPrev( ElementTypeE type ) const;
+	Element GetNext( ElementTypeE type ) const;
+	Element GetChild( ElementTypeE type ) const;
 
 	// child
 	inline ElementIterator begin() const;

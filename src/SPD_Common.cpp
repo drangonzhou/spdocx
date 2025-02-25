@@ -105,5 +105,10 @@ SPD_API int SPD_SetLogFuncLevel( SPD_LogFunc_t func, int level )
 	return 0;
 }
 
+SPD_API const char * SPD_GetLibVersion()
+{
+	return SPD_LIB_VERSION;
+}
+
 ////////////////////////////////
 END_NS_SPD
