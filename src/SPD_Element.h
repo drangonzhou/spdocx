@@ -184,12 +184,14 @@ public:
 public:
 	const char * GetStyleId() const;
 	const char * GetStyleName( const Document * doc ) const; // style name, ex : heading 1
-	const char * GetNumid() const;
+	const char * GetNumId() const;
+	int GetNumLevel() const;
 	std::string GetText() const;
 
 	int SetStyleId( const char * id ); // id must valid in doc
 	int SetStyleName( const char * name, const Document * doc );
-	int SetNumid( const char * id ); // empty means remove numid, use style default, TODO : numlevel
+	int SetNumId( const char * id ); // empty means remove numid, use style default
+	int SetNumLevel( int level ); // 0 means remove numlevel, use style default
 	// Text can not set directly, need to set child run
 
 	// NOTE : child is Run or Hyperlink ( or Bookmark or Comment )
@@ -243,11 +245,13 @@ public:
 	virtual ~Run() { }
 
 public:
+	bool IsPicture() const;	 // picture or not
+
 	const char * GetColor() const;     // font front color, ex : 00B0F0
 	const char * GetHighline() const;  // font bg color, ex : yellow
 	bool GetBold() const;              // font bold 
 	bool GetItalic() const;            // font italic
-	const char * GetUnderline() const; // font underline, ex : "", "singal", "double", "dotted"
+	const char * GetUnderline() const; // font underline, ex : "", "single", "double", "dotted"
 	bool GetStrike() const;            // font deleted with strike
 	bool GetDoubleStrike() const;      // font deleted with double strike, can not both exist with strike
 	std::string GetText() const;
@@ -260,6 +264,9 @@ public:
 	int SetStrike( bool strike = true );
 	int SetDoubleStrike( bool dstrike = true );
 	void SetText( const char * text );
+
+	std::string GetPicID() const; // picture id, ex : 00000000-0000-0000-0000-000000000000
+	int GetPicData(std::vector<char>& data);
 
 	// NOTE : no child ( w:t text is skip and handle by Run )
 

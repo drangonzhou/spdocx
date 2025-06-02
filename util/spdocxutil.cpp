@@ -124,6 +124,7 @@ static int dumpinfo( const char * fname )
 	ret = doc.Open( fname );
 	if( ret < 0 ) {
 		printf( "doc.Open() ret %d\n", ret );
+		return -1;
 	}
 
 	SPDDebug::DumpDocument( &doc );
@@ -201,6 +202,8 @@ int main( int argc, char * argv[] )
 
 	if( strcmp( argv[1], "dumpinfo" ) == 0 && argc >= 3 ) {
 		dumpinfo( argv[2] );
+		char utf8_string[] = "\xE4\xB8\xAD\xE6\x96\x87.docx"; // 中文.docx
+		dumpinfo( utf8_string );
 	}
 	else if( strcmp( argv[1], "dumpdirjson" ) == 0 && argc >= 3 ) {
 		dumpdirjson( argv[2] );

@@ -185,10 +185,17 @@ const char * Paragraph::GetStyleName( const Document * doc ) const
 	return doc->GetStyleName( attr.value() );
 }
 
-const char * Paragraph::GetNumid() const
+const char * Paragraph::GetNumId() const
 {
 	pugi::xml_attribute attr = m_nd.child( "w:pPr" ).child( "w:numPr" ).child( "w:numId" ).attribute( "w:val" );
 	return attr.value();
+}
+
+int Paragraph::GetNumLevel() const
+{
+	pugi::xml_attribute attr = m_nd.child( "w:pPr" ).child( "w:numPr" ).child( "w:ilvl" ).attribute( "w:val" );
+	const char * val = attr.value();
+	return ( val != nullptr ) ? atoi( val ) : 0;
 }
 
 int Paragraph::SetStyleId( const char * id )
@@ -222,7 +229,7 @@ int Paragraph::SetStyleName( const char * name, const Document * doc )
 	return SetStyleId( id );
 }
 
-int Paragraph::SetNumid( const char * id )
+int Paragraph::SetNumId( const char * id )
 {
 	//pugi::xml_attribute attr = m_nd.child( "w:pPr" ).child( "w:numPr" ).child( "w:numId" ).attribute( "w:val" );
 	pugi::xml_node nd = m_nd.child( "w:pPr" );
@@ -248,6 +255,37 @@ int Paragraph::SetNumid( const char * id )
 			attr = nd3.append_attribute( "w:val" );
 		}
 		attr.set_value( id );
+	}
+	return 0;
+}
+
+int Paragraph::SetNumLevel( int level )
+{
+	//pugi::xml_attribute attr = m_nd.child( "w:pPr" ).child( "w:numPr" ).child( "w:ilvl" ).attribute( "w:val" );
+	pugi::xml_node nd = m_nd.child( "w:pPr" );
+	if( nd.empty() ) {
+		nd = m_nd.append_child( "w:pPr" );
+	}
+	pugi::xml_node nd2 = nd.child( "w:numPr" );
+	if( nd2.empty() ) {
+		nd2 = nd.append_child( "w:numPr" );
+	}
+	pugi::xml_node nd3 = nd2.child( "w:ilvl" );
+	if( level == 0 ) {
+		if( nd3 ) {
+			nd2.remove_child( "w:ilvl" );
+		}
+	}
+	else {
+		if( nd3.empty() ) {
+			nd3 = nd2.append_child( "w:numId" );
+		}
+		pugi::xml_attribute attr = nd3.attribute( "w:val" );
+		if( attr.empty() ) {
+			attr = nd3.append_attribute( "w:val" );
+		}
+		std::string lstr = std::to_string( level );
+		attr.set_value( lstr.c_str() );
 	}
 	return 0;
 }
@@ -399,6 +437,12 @@ Run Hyperlink::AddSiblingRun( bool add_next )
 	pugi::xml_node nd = add_next ? m_nd.parent().insert_child_after( "w:r", m_nd )
 		: m_nd.parent().insert_child_before( "w:r", m_nd );
 	return Run( Element( nd ) );
+}
+
+bool Run::IsPicture() const
+{
+	// check xml node for picture
+	return false;
 }
 
 const char * Run::GetColor() const
@@ -608,6 +652,16 @@ void Run::SetText( const char * text )
 {
 	m_nd.child( "w:t" ).text().set( text );
 	return;
+}
+
+std::string Run::GetPicID() const
+{
+	return std::string();
+}
+
+int Run::GetPicData( std::vector<char>& data )
+{
+	return 0;
 }
 
 Hyperlink Run::AddSiblingHyperlink( bool add_next )

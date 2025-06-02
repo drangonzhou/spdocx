@@ -47,13 +47,13 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\SPD_Document.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\SPD_Element.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="..\src\SPD_Common.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\SPD_Document.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

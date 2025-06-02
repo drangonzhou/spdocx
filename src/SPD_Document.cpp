@@ -389,19 +389,27 @@ int Document::load_style()
 			style.m_type = nd.attribute( "w:type" ).value();
 			style.m_name = nd.child( "w:name" ).attribute( "w:val" ).value();
 			pugi::xml_node ppr = nd.child( "w:pPr" );
-			if( ppr ) {
-				pugi::xml_node numid = ppr.child( "w:numPr" );
-				if( numid )
-					numid = numid.child( "w:numId" );
+			pugi::xml_node numpr = ppr.child( "w:numPr" );
+			if( numpr ) {
+				pugi::xml_node numid = numpr.child( "w:numId" );
 				if( numid ) {
-					style.m_pnumid = numid.attribute( "w:val" ).value();
+					style.m_numId = numid.attribute( "w:val" ).value();
 				}
 				else {
-					style.m_pnumid = "";
+					style.m_numId = "";
+				}
+				pugi::xml_node numlevel = numpr.child( "w:ilvl" );
+				if( numlevel ) {
+					const char * val = numlevel.attribute( "w:val" ).value();
+					style.m_numLevel = (val != nullptr) ? atoi( numlevel.attribute( "w:val" ).value() ) : 0;
+				}
+				else {
+					style.m_numLevel = 0;
 				}
 			}
 			else {
-				style.m_pnumid = "";
+				style.m_numId = "";
+				style.m_numLevel = 0;
 			}
 		}
 		else if( strcmp( nd.name(), "w:docDefaults" ) == 0 || strcmp( nd.name(), "w:latentStyles" ) == 0 ) {

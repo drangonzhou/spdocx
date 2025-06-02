@@ -34,7 +34,8 @@ public:
 	std::string m_id;
 	std::string m_type;  // paragraph, table, character ...
 	std::string m_name;
-	std::string m_pnumid;  // <w:pPr><w:numId w:val="0"/>
+	std::string m_numId;  // empty means no numbering
+	int m_numLevel = 0;  // 0 means no numbering
 };
 
 class SPD_API Relationship
