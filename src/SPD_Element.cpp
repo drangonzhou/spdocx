@@ -42,6 +42,24 @@ static bool is_skipped_node( pugi::xml_node nd )
 	return false;
 }
 
+pugi::xml_node Element::GetCreateChild( pugi::xml_node parent, const char * name )
+{
+	pugi::xml_node nd = parent.child( name );
+	if( nd.empty() ) {
+		nd = parent.append_child( name );
+	}
+	return nd;
+}
+
+pugi::xml_attribute Element::GetCreateAttr( pugi::xml_node nd, const char * name )
+{
+	pugi::xml_attribute attr = nd.attribute( name );
+	if( attr.empty() ) {
+		attr = nd.append_attribute( name );
+	}
+	return attr;
+}
+
 Element::Element( pugi::xml_node nd ) : m_nd( nd )
 {
 	m_type = Element::GetNodeType( nd );
@@ -201,14 +219,8 @@ int Paragraph::GetNumLevel() const
 int Paragraph::SetStyleId( const char * id )
 {
 	//pugi::xml_attribute attr = m_nd.child( "w:pPr" ).child( "w:pStyle" ).attribute( "w:val" );
-	pugi::xml_node nd = m_nd.child( "w:pPr" );
-	if( nd.empty() ) {
-		nd = m_nd.append_child( "w:pPr" );
-	}
-	pugi::xml_node nd2 = nd.child( "w:pStyle" );
-	if( nd2.empty() ) {
-		nd2 = nd.append_child( "w:pStyle" );
-	}
+	pugi::xml_node nd = Element::GetCreateChild( m_nd, "w:pPr" );
+	pugi::xml_node nd2 = Element::GetCreateChild( nd, "w:pStyle" );
 	pugi::xml_attribute attr = nd2.attribute( "w:val" );
 	if( id == nullptr || id[0] == '\0' ) {
 		if( !attr.empty() )
@@ -232,14 +244,8 @@ int Paragraph::SetStyleName( const char * name, const Document * doc )
 int Paragraph::SetNumId( const char * id )
 {
 	//pugi::xml_attribute attr = m_nd.child( "w:pPr" ).child( "w:numPr" ).child( "w:numId" ).attribute( "w:val" );
-	pugi::xml_node nd = m_nd.child( "w:pPr" );
-	if( nd.empty() ) {
-		nd = m_nd.append_child( "w:pPr" );
-	}
-	pugi::xml_node nd2 = nd.child( "w:numPr" );
-	if( nd2.empty() ) {
-		nd2 = nd.append_child( "w:numPr" );
-	}
+	pugi::xml_node nd = Element::GetCreateChild( m_nd, "w:pPr" );
+	pugi::xml_node nd2 = Element::GetCreateChild( nd, "w:numPr" );
 	pugi::xml_node nd3 = nd2.child( "w:numId" );
 	if( id == nullptr || id[0] == '\0' ) {
 		if( nd3 ) {
@@ -250,11 +256,7 @@ int Paragraph::SetNumId( const char * id )
 		if( nd3.empty() ) {
 			nd3 = nd2.append_child( "w:numId" );
 		}
-		pugi::xml_attribute attr = nd3.attribute( "w:val" );
-		if( attr.empty() ) {
-			attr = nd3.append_attribute( "w:val" );
-		}
-		attr.set_value( id );
+		Element::GetCreateAttr( nd3, "w:val" ).set_value( id );
 	}
 	return 0;
 }
@@ -262,14 +264,8 @@ int Paragraph::SetNumId( const char * id )
 int Paragraph::SetNumLevel( int level )
 {
 	//pugi::xml_attribute attr = m_nd.child( "w:pPr" ).child( "w:numPr" ).child( "w:ilvl" ).attribute( "w:val" );
-	pugi::xml_node nd = m_nd.child( "w:pPr" );
-	if( nd.empty() ) {
-		nd = m_nd.append_child( "w:pPr" );
-	}
-	pugi::xml_node nd2 = nd.child( "w:numPr" );
-	if( nd2.empty() ) {
-		nd2 = nd.append_child( "w:numPr" );
-	}
+	pugi::xml_node nd = Element::GetCreateChild( m_nd, "w:pPr" );
+	pugi::xml_node nd2 = Element::GetCreateChild( nd, "w:numPr" );
 	pugi::xml_node nd3 = nd2.child( "w:ilvl" );
 	if( level == 0 ) {
 		if( nd3 ) {
@@ -278,14 +274,10 @@ int Paragraph::SetNumLevel( int level )
 	}
 	else {
 		if( nd3.empty() ) {
-			nd3 = nd2.append_child( "w:numId" );
-		}
-		pugi::xml_attribute attr = nd3.attribute( "w:val" );
-		if( attr.empty() ) {
-			attr = nd3.append_attribute( "w:val" );
+			nd3 = nd2.append_child( "w:ilvl" );
 		}
 		std::string lstr = std::to_string( level );
-		attr.set_value( lstr.c_str() );
+		Element::GetCreateAttr( nd3, "w:val" ).set_value( lstr.c_str() );
 	}
 	return 0;
 }
@@ -501,13 +493,8 @@ int Run::SetColor( const char * color )
 	else {
 		if( nd.empty() )
 			nd = m_nd.append_child( "w:rPr" );
-		pugi::xml_node nd2 = nd.child( "w:color" );
-		if( nd2.empty() )
-			nd2 = nd.append_child( "w:color" );
-		pugi::xml_attribute attr = nd2.attribute( "w:val" );
-		if( attr.empty() )
-			attr = nd2.append_attribute( "w:val" );
-		attr.set_value( color );
+		pugi::xml_node nd2 = Element::GetCreateChild( nd, "w:color" );
+		Element::GetCreateAttr( nd2, "w:val" ).set_value( color );
 	}
 	return 0;
 }
@@ -526,13 +513,8 @@ int Run::SetHighline( const char * color )
 	else {
 		if( nd.empty() )
 			nd = m_nd.append_child( "w:rPr" );
-		pugi::xml_node nd2 = nd.child( "w:highlight" );
-		if( nd2.empty() )
-			nd2 = nd.append_child( "w:highlight" );
-		pugi::xml_attribute attr = nd2.attribute( "w:val" );
-		if( attr.empty() )
-			attr = nd2.append_attribute( "w:val" );
-		attr.set_value( color );
+		pugi::xml_node nd2 = Element::GetCreateChild( nd, "w:highlight" );
+		Element::GetCreateAttr( nd2, "w:val" ).set_value( color );
 	}
 	return 0;
 }
@@ -593,13 +575,8 @@ int Run::SetUnderline( const char * underline )
 	else {
 		if( nd.empty() )
 			nd = m_nd.append_child( "w:rPr" );
-		pugi::xml_node nd2 = nd.child( "w:u" );
-		if( nd2.empty() )
-			nd2 = nd.append_child( "w:u" );
-		pugi::xml_attribute attr = nd2.attribute( "w:val" );
-		if( attr.empty() )
-			attr = nd2.append_attribute( "w:val" );
-		attr.set_value( underline );
+		pugi::xml_node nd2 = Element::GetCreateChild( nd, "w:u" );
+		Element::GetCreateAttr( nd2, "w:val" ).set_value( underline );
 	}
 	return 0;
 }
@@ -650,17 +627,19 @@ int Run::SetDoubleStrike( bool dstrike )
 
 void Run::SetText( const char * text )
 {
-	m_nd.child( "w:t" ).text().set( text );
+	Element::GetCreateChild( m_nd, "w:t" ).text().set( text );
 	return;
 }
 
 std::string Run::GetPicID() const
 {
+	// TODO 
 	return std::string();
 }
 
 int Run::GetPicData( std::vector<char>& data )
 {
+	// TODO
 	return 0;
 }
 

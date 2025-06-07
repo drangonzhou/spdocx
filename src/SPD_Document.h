@@ -33,17 +33,17 @@ class SPD_API StyleLite
 public:
 	std::string m_id;
 	std::string m_type;  // paragraph, table, character ...
-	std::string m_name;
-	std::string m_numId;  // empty means no numbering
-	int m_numLevel = 0;  // 0 means no numbering
+	std::string m_name;  // "headding 1", "heading 2", ... , "normal",
+	std::string m_numId; // empty means no numbering
+	int m_numLevel = 0;  // 0 means no numbering, level start from 1
 };
 
 class SPD_API Relationship
 {
 public:
 	std::string m_id;
-	std::string m_type;
-	std::string m_target;
+	std::string m_type;        // "hyperlink", "image", "media", ...
+	std::string m_target;      // name or url
 	std::string m_targetMode;  // External
 };
 
@@ -76,8 +76,12 @@ public:
 
 	const char * GetStyleName( const char * id ) const;
 	const char * GetStyleId( const char * name ) const;
+	const StyleLite * GetStyle( const char* id ) const;
+	std::vector< const StyleLite *> GetAllStyle() const;
+	int AddStyle( const StyleLite& style );  // if style exist, update it
 	const Relationship * GetRelationship( const char * id ) const;
-	// TODO : modify style and relationship
+	std::vector< const Relationship * > GetAllRelationship() const;
+	int AddRelationship( const Relationship & rela );  // if relationship exist, update it
 
 protected:
 	static int read_zip( const std::string & fname, std::map< std::string, std::vector<char> > & files );
@@ -88,6 +92,8 @@ protected:
 	int write_xml( const std::string & fname, const pugi::xml_document & doc );
 	int load_style();
 	int load_rela();
+	int write_style();
+	int write_rela();
 
 private:
 	friend class SPDDebug;

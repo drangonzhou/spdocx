@@ -45,6 +45,9 @@
     <ClInclude Include="..\3rdparty\zlib.h">
       <Filter>3rdParty</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\SPD_NewDoc.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\SPD_Element.cpp">

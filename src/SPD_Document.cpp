@@ -15,6 +15,7 @@
 // along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "SPD_Document.h"
+#include "SPD_NewDoc.h"
 
 #include <zip.h>
 #include <memory>
@@ -22,142 +23,6 @@
 
 BEGIN_NS_SPD
 ////////////////////////////////
-
-static const char * s_content_type = R"(<?xml encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-    <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml" />
-    <Default Extension="xml" ContentType="application/xml" />
-    <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml" />
-    <Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml" />
-    <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml" />
-    <Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml" />
-    <Override PartName="/word/webSettings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.webSettings+xml" />
-    <Override PartName="/word/fontTable.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml" />
-    <Override PartName="/word/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml" />
-    <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml" />
-    <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml" />
-</Types>
-)";
-
-static const char * s_docprops_app = R"(<?xml encoding="UTF-8" standalone="yes"?>
-<Properties 
-    xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" 
-    xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
-    <Template>Normal.dotm</Template>
-    <TotalTime>0</TotalTime>
-    <Application>spdocx</Application>
-    <DocSecurity>0</DocSecurity>
-</Properties>
-)";
-
-static const char * s_docprops_core = R"(<?xml encoding="UTF-8" standalone="yes"?>
-<cp:coreProperties 
-    xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" 
-    xmlns:dc="http://purl.org/dc/elements/1.1/" 
-    <dc:title></dc:title>
-    <dc:subject></dc:subject>
-    <dc:creator>spdocx</dc:creator>
-    <dc:description></dc:description>
-    <cp:keywords></cp:keywords>
-    <cp:lastModifiedBy>spdocx</cp:lastModifiedBy>
-    <cp:revision>1</cp:revision>
-</cp:coreProperties>
-)";
-
-static const char * s_rels_rels = R"(<?xml encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-    <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
-    <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
-    <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
-</Relationships>
-)";
-
-static const char * s_word_document = R"(<?xml encoding="UTF-8" standalone="yes"?>
-<w:document 
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-    xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" 
-    xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" 
-    xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" 
-    mc:Ignorable="w14 w15">
-    <w:body>
-        <w:p w:rsidR="00C35A5F" w:rsidRDefault="00C35A5F" w:rsidP="00C35A5F"/>
-    </w:body>
-</w:document>
-)";
-
-static const char * s_word_styles = R"(<?xml encoding="UTF-8" standalone="yes"?>
-<w:styles 
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-    xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" 
-    xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" 
-    xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" 
-    mc:Ignorable="w14 w15">
-    <w:docDefaults>
-        <w:rPrDefault>
-            <w:rPr>
-                <w:rFonts w:asciiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:hAnsiTheme="minorHAnsi" w:cstheme="minorBidi"/>
-                <w:kern w:val="2"/>
-                <w:sz w:val="21"/>
-                <w:szCs w:val="22"/>
-                <w:lang w:val="en-US" w:eastAsia="zh-CN" w:bidi="ar-SA"/>
-            </w:rPr>
-        </w:rPrDefault>
-        <w:pPrDefault/>
-    </w:docDefaults>
-    <w:style w:type="paragraph" w:default="1" w:styleId="a">
-        <w:name w:val="Normal"/>
-        <w:qFormat/>
-        <w:rsid w:val="00763DC6"/>
-        <w:pPr>
-            <w:widowControl w:val="0"/>
-            <w:jc w:val="both"/>
-        </w:pPr>
-        <w:rPr>
-            <w:szCs w:val="21"/>
-        </w:rPr>
-    </w:style>
-    <w:style w:type="paragraph" w:styleId="1">
-        <w:name w:val="heading 1"/>
-        <w:basedOn w:val="a"/>
-        <w:next w:val="20"/>
-        <w:link w:val="10"/>
-        <w:uiPriority w:val="9"/>
-        <w:qFormat/>
-        <w:rsid w:val="00A2258A"/>
-        <w:pPr>
-            <w:keepNext/>
-            <w:keepLines/>
-            <w:numPr>
-                <w:numId w:val="22"/>
-            </w:numPr>
-            <w:spacing w:before="340" w:after="330" w:line="578" w:lineRule="auto"/>
-            <w:outlineLvl w:val="0"/>
-        </w:pPr>
-        <w:rPr>
-            <w:rFonts w:ascii="Times New Roman" w:eastAsia="ºÚÌå" w:hAnsi="Times New Roman"/>
-            <w:b/>
-            <w:bCs/>
-            <w:kern w:val="44"/>
-            <w:sz w:val="44"/>
-            <w:szCs w:val="44"/>
-        </w:rPr>
-    </w:style>
-</w:styles>
-)";
-// TODO : more style,
-
-// TODO : numbering.xml
-
-static const char * s_word_rels = R"(<?xml encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-    <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>
-    <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
-    <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>
-    <Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml"/>
-    <Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable" Target="fontTable.xml"/>
-    <Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/webSettings" Target="webSettings.xml"/>
-</Relationships>
-)";
 
 Document::Document()
 {
@@ -173,13 +38,18 @@ int Document::New()
 {
 	Close();
 
-	m_files["[Content_Types].xml"].assign( s_content_type, s_content_type + strlen( s_content_type ) );
-	m_files["docProps/app.xml"].assign( s_docprops_app, s_docprops_app + strlen( s_docprops_app ) );
-	m_files["docProps/core.xml"].assign( s_docprops_core, s_docprops_core + strlen( s_docprops_core ) );
-	m_files["_rels/.rels"].assign( s_rels_rels, s_rels_rels + strlen( s_rels_rels ) );
-	m_files["word/document.xml"].assign( s_word_document, s_word_document + strlen( s_word_document ) );
-	m_files["word/styles.xml"].assign( s_word_styles, s_word_styles + strlen( s_word_styles ) );
-	m_files["word/_rels/document.xml.rels"].assign( s_word_styles, s_word_styles + strlen( s_word_styles ) );
+	m_files["[Content_Types].xml"].assign( s_content_type, s_content_type + strlen( s_content_type ) + 1 );
+	m_files["docProps/app.xml"].assign( s_docprops_app, s_docprops_app + strlen( s_docprops_app ) + 1 );
+	m_files["docProps/core.xml"].assign( s_docprops_core, s_docprops_core + strlen( s_docprops_core ) + 1 );
+	m_files["_rels/.rels"].assign( s_rels_rels, s_rels_rels + strlen( s_rels_rels ) + 1 );
+	m_files["word/document.xml"].assign( s_word_document, s_word_document + strlen( s_word_document ) + 1 );
+	m_files["word/styles.xml"].assign( s_word_styles, s_word_styles + strlen( s_word_styles ) + 1 );
+	m_files["word/numbering.xml"].assign( s_word_numbering, s_word_numbering + strlen( s_word_numbering ) + 1 );
+	m_files["word/fontTable.xml"].assign( s_word_font_table, s_word_font_table + strlen( s_word_font_table ) + 1 );
+	m_files["word/settings.xml"].assign( s_word_settings, s_word_settings + strlen( s_word_settings ) + 1 );
+	m_files["word/webSettings.xml"].assign( s_word_web_settings, s_word_web_settings + strlen( s_word_web_settings ) + 1 );
+	m_files["word/_rels/document.xml.rels"].assign( s_word_rels, s_word_rels + strlen( s_word_rels ) + 1 );
+	m_files["word/theme/theme1.xml"].assign( s_word_theme, s_word_theme + strlen( s_word_theme ) + 1 );
 
 	int ret = SPD_ERR_ERROR;
 	if( ( ret = parse_files() ) != SPD_ERR_OK ) {
@@ -344,7 +214,8 @@ int Document::Save( const std::string & fname )
 
 	write_xml( "word/document.xml", m_doc );
 	
-	// TODO : style and rela
+	write_style();
+	write_rela();
 
 	// save zip file
 	if( ( ret = write_zip( m_fname, m_files ) ) != SPD_ERR_OK ) {
@@ -401,7 +272,7 @@ int Document::load_style()
 				pugi::xml_node numlevel = numpr.child( "w:ilvl" );
 				if( numlevel ) {
 					const char * val = numlevel.attribute( "w:val" ).value();
-					style.m_numLevel = (val != nullptr) ? atoi( numlevel.attribute( "w:val" ).value() ) : 0;
+					style.m_numLevel = (val != nullptr) ? atoi( val ) : 0;
 				}
 				else {
 					style.m_numLevel = 0;
@@ -449,6 +320,11 @@ int Document::load_rela()
 			rela.m_type = nd.attribute( "Type" ).value();
 			rela.m_target = nd.attribute( "Target" ).value();
 			rela.m_targetMode = nd.attribute( "TargetMode" ).value();
+			// Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink"
+			size_t pos = rela.m_type.find_last_of( '/' );
+			if( pos != std::string::npos ) {
+				rela.m_type = rela.m_type.substr( pos + 1 );
+			}
 		}
 		else {
 			// unknown tag
@@ -534,6 +410,33 @@ const char * Document::GetStyleId( const char * name ) const
 	return "";
 }
 
+const StyleLite * Document::GetStyle( const char* id ) const
+{
+	if( id == nullptr || id[0] == '\0' )
+		return nullptr;
+	auto it = m_style.find( std::string( id ) );
+	if( it == m_style.end() )
+		return nullptr;
+	return &it->second;
+}
+
+std::vector< const StyleLite*> Document::GetAllStyle() const
+{
+	std::vector< const StyleLite* > ret;
+	for( auto it = m_style.begin(); it != m_style.end(); ++it ) {
+		ret.push_back( &(it->second) );
+	}
+	return ret;
+}
+
+int Document::AddStyle( const StyleLite & style )
+{
+	if( style.m_id.empty() )
+		return -1;
+	m_style[style.m_id] = style;
+	return 0;
+}
+
 const Relationship * Document::GetRelationship( const char * id ) const
 {
 	if( id == nullptr || id[0] == '\0' )
@@ -542,6 +445,80 @@ const Relationship * Document::GetRelationship( const char * id ) const
 	if( it == m_rela.end() )
 		return nullptr;
 	return &(it->second);
+}
+
+std::vector< const Relationship* > Document::GetAllRelationship() const
+{
+	std::vector< const Relationship * > ret;
+	for( auto it = m_rela.begin(); it != m_rela.end(); ++it ) {
+		ret.push_back( &(it->second) );
+	}
+	return ret;
+}
+int Document::AddRelationship( const Relationship& rela )
+{
+	if( rela.m_id.empty() )
+		return -1;
+	m_rela[rela.m_id] = rela;
+	return 0;
+}
+
+int Document::write_style()
+{
+	pugi::xml_document doc;
+	int ret = read_xml( "word/styles.xml", &doc );
+	if( ret < 0 ) {
+		m_files["word/styles.xml"].assign( s_word_styles, s_word_styles + strlen( s_word_styles ) + 1 );
+		ret = read_xml( "word/styles.xml", &doc );
+	}
+
+	pugi::xml_node pnd = doc.document_element().first_child(); // child( "w:styles" );
+	for( auto & it : m_style )
+	{
+		pugi::xml_node nd = pnd.find_child( [&it]( pugi::xml_node cnd ) { return cnd.attribute( "w:styleId" ).value() == it.first; } );
+		if( !nd ) {
+			nd = pnd.append_child( "w:style" );
+		}
+		Element::GetCreateAttr( nd, "w:type" ).set_value( it.second.m_type.c_str() );
+		pugi::xml_node cnd = Element::GetCreateChild( nd, "w:name" );
+		Element::GetCreateAttr( nd, "w:val" ).set_value( it.second.m_name.c_str() );
+		if( !it.second.m_numId.empty() ) {
+			cnd = Element::GetCreateChild( nd, "w:pPr" );
+			pugi::xml_node cnd2 = Element::GetCreateChild( cnd, "w:numPr" );
+			pugi::xml_node cnd3 = Element::GetCreateChild( cnd2, "w:numId" );
+			Element::GetCreateAttr( cnd3, "w:val" ).set_value( it.second.m_numId.c_str() );
+			cnd3 = Element::GetCreateChild( cnd2, "w:ilvl" );
+			Element::GetCreateAttr( cnd3, "w:numId" ).set_value( it.second.m_numId.c_str() );
+		}
+	}
+	return 0;
+}
+
+int Document::write_rela()
+{
+	pugi::xml_document doc;
+	int ret = read_xml( "word/_rels/document.xml.rels", &doc );
+	if( ret < 0 ) {
+		m_files["word/_rels/document.xml.rels"].assign( s_word_rels, s_word_rels + strlen( s_word_rels ) + 1 );
+		ret = read_xml( "word/_rels/document.xml.rels", &doc );
+	}
+	pugi::xml_node pnd = doc.document_element().first_child(); // child( "Relationships" );
+	for( auto & it : m_rela )
+	{
+		pugi::xml_node nd = pnd.find_child( [&it]( pugi::xml_node cnd ) { return cnd.attribute( "Id" ).value() == it.first; } );
+		if( !nd ) {
+			nd = pnd.append_child( "Relationship" );
+		}
+		// Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink"
+		std::string type = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/";
+		type += it.second.m_type;
+		Element::GetCreateAttr( nd, "Type" ).set_value( type.c_str() );
+		Element::GetCreateAttr( nd, "Target" ).set_value( it.second.m_target.c_str() );
+		if( !it.second.m_targetMode.empty() ) {
+			Element::GetCreateAttr( nd, "TargetMode" ).set_value( it.second.m_targetMode.c_str() );
+		}
+	}
+	return 0;
 }
 
 ////////////////////////////////

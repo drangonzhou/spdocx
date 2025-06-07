@@ -1,4 +1,4 @@
-// SPD_Def.h : spdocx common define
+// SPD_Common.cpp : spdocx common define
 // Copyright (C) 2021 ~ 2025 drangon <drangon_zhou (at) hotmail.com>
 //
 // This program is free software: you can redistribute it and/or modify it

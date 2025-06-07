@@ -112,6 +112,10 @@ public:
 	int DelChild( Element & child );
 	int DelAllChild();
 
+	// util
+	static pugi::xml_node GetCreateChild( pugi::xml_node parent, const char * name );
+	static pugi::xml_attribute GetCreateAttr( pugi::xml_node nd, const char * name );
+
 protected:
 	friend class ElementIterator;
 	friend class Paragraph;

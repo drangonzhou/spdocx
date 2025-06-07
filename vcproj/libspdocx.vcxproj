@@ -28,6 +28,7 @@
     <ClInclude Include="..\src\SPD_Common.h" />
     <ClInclude Include="..\src\SPD_Document.h" />
     <ClInclude Include="..\src\SPD_Element.h" />
+    <ClInclude Include="..\src\SPD_NewDoc.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\SPD_Common.cpp" />

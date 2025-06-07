@@ -17,6 +17,7 @@
 #include "SPD_Document.h"
 
 #include <iostream>
+#include <fstream>
 #include <string>
 
 #include <time.h>
@@ -180,12 +181,90 @@ static int dumpdirjson( const char * fname )
 	return 0;
 }
 
+static int newdoc( const char * fname )
+{
+	int ret;
+	Document doc;
+	doc.New();
+	// title
+	Element ele = doc.GetFirstElement();
+	ele.DelAllChild();
+	Paragraph para = ele;
+	Run r = para.AddChildRun();
+	r.SetText( "this is title" );
+	Paragraph para2 = para.AddSiblingParagraph();
+	para2.SetStyleId( doc.GetStyleId( "heading 1" ) );
+	Run r2 = para2.AddChildRun();
+	r2.SetText( "chapter one" );
+	ret = doc.Save( fname );
+	if( ret < 0 ) {
+		printf( "doc.Save() ret %d\n", ret );
+	}
+	for( auto & ele : doc )
+	{
+		if( ele.GetType() != ElementTypeE::PARAGRAPH )
+			continue;
+
+	}
+	doc.Close();
+	return 0;
+}
+
+static int conv( const char * fname )
+{
+	// read file to char string
+	std::ifstream ifs( fname, std::ios::binary );
+	if( !ifs.is_open() ) {
+		printf( "can't open file %s\n", fname );
+		return -1;
+	}
+	ifs.seekg( 0, std::ios::end );
+	long len = ifs.tellg();
+	ifs.seekg( 0, std::ios::beg );
+	char * buf = new char[len + 1];
+	ifs.read( buf, len );
+	buf[len] = '\0';
+	ifs.close();
+
+	printf( "const char * const str = \n\"" );
+	long i;
+	for( i = 0; i < len; ++i )
+	{
+		uint8_t ch = (uint8_t)buf[i];
+		if( ch == '"' ) {
+			printf( "\\\"" );
+		}
+		else if( ch == '\r' ) {
+			printf( "\\r" );
+		}
+		else if( ch == '\n' ) {
+			printf( "\\n" );
+		}
+		else if( ch >= 32 && ch <= 126 ) {
+			printf( "%c", ch );
+		}
+		else {
+			printf( "\\x%02x", ch );
+		}
+		if( i % 120 == 119 )
+		{
+			printf( "\"\n\"" );
+		}
+	}
+	printf( "\";\n" );
+
+	delete [] buf, buf = nullptr;
+	return 0;
+}
+
 static int usage()
 {
 	printf( "%s", R"(Usage: spdocxutil <cmd> <params>
   usage | help        : show this usage
   dumpinfo            : dump docx info
   dumpdirjson         : dump docx dir in json
+  newdoc              : create new docx 
+  conv                : conv file to char string
 )" );
 	return 0;
 }
@@ -207,6 +286,12 @@ int main( int argc, char * argv[] )
 	}
 	else if( strcmp( argv[1], "dumpdirjson" ) == 0 && argc >= 3 ) {
 		dumpdirjson( argv[2] );
+	}
+	else if( strcmp( argv[1], "newdoc" ) == 0 && argc >= 3 ) {
+		newdoc( argv[2] );
+	}
+	else if( strcmp( argv[1], "conv" ) == 0 && argc >= 3 ) {
+		conv( argv[2] );
 	}
 	else {
 		printf( "[ERR] unknown cmd or bad params\n" );
