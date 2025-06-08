@@ -33,7 +33,7 @@ enum class ElementTypeE : uint8_t
 
 	PARAGRAPH,  // w:p (top)
 	HYPERLINK,  // w:hyperlink
-	RUN,        // w:r -> w:t
+	RUN,        // w:r -> w:t or w:drawing or w:object
 
 	TABLE,      // w:tbl (top)
 	TABLE_ROW,   // w:tr
@@ -187,15 +187,15 @@ public:
 
 public:
 	const char * GetStyleId() const;
-	const char * GetStyleName( const Document * doc ) const; // style name, ex : heading 1
-	const char * GetNumId() const;
-	int GetNumLevel() const;
+	const char * GetStyleName( const Document & doc ) const; // style name, ex : heading 1
+	const char * GetNumId() const;    // nullptr means no numid, use style default
+	int GetNumLevel() const;          // -1 means no level, use style default
 	std::string GetText() const;
 
 	int SetStyleId( const char * id ); // id must valid in doc
-	int SetStyleName( const char * name, const Document * doc );
+	int SetStyleName( const char * name, const Document & doc );
 	int SetNumId( const char * id ); // empty means remove numid, use style default
-	int SetNumLevel( int level ); // 0 means remove numlevel, use style default
+	int SetNumLevel( int level ); // use with SetNumId(), -1 means remove numlevel, use style default
 	// Text can not set directly, need to set child run
 
 	// NOTE : child is Run or Hyperlink ( or Bookmark or Comment )
@@ -218,16 +218,16 @@ public:
 	virtual ~Hyperlink() { }
 
 public:
-	const char * GetAnchor() const;     // local bookmark link
-	const char * GetRelationshipId() const;
-	const Relationship * GetRelationship( const Document * doc ) const;
-	const char * GetLinkType( const Document * doc ) const;   // hyperlink type, ex : image -> http://schema.../image
-	const char * GetTargetMode( const Document * doc ) const; // hyperlink mode, internal : "", external : "External"
-	const char * GetTarget( const Document * doc ) const;     // hyperlink target, internal : "media/image1.png", external : "http://xxx.org"
+	const char * GetAnchor() const;          // local bookmark link
+	const char * GetRelaId() const;  // remote hiperlink
+	const Relationship * GetRela( const Document & doc ) const;
+	const std::string & GetRelaType( const Document & doc ) const;   // hyperlink type, ex : hyperlink
+	const std::string & GetRelaTargetMode( const Document & doc ) const; // hyperlink mode, internal : "", external : "External"
+	const std::string & GetRelaTarget( const Document & doc ) const;     // hyperlink target, internal : "media/image1.png", external : "http://xxx.org"
 	std::string GetText() const;
 
-	int SetAnchor( const char * anchor );
-	int SetRelationshipId( const char * relid );
+	int SetAnchor( const char * anchor );          // local bookmark link
+	int SetRelaId( const char * relid );   // remote hiperlink
 	// relationship detail and text need to set through Document
 
 	// NOTE : child is Run
@@ -249,7 +249,9 @@ public:
 	virtual ~Run() { }
 
 public:
-	bool IsPicture() const;	 // picture or not
+	bool IsText() const;	 // text or not
+	bool IsPic() const;	     // picture or not
+	bool IsObject() const;	 // object or not
 
 	const char * GetColor() const;     // font front color, ex : 00B0F0
 	const char * GetHighline() const;  // font bg color, ex : yellow
@@ -269,8 +271,16 @@ public:
 	int SetDoubleStrike( bool dstrike = true );
 	void SetText( const char * text );
 
-	std::string GetPicID() const; // picture id, ex : 00000000-0000-0000-0000-000000000000
-	int GetPicData(std::vector<char>& data);
+	const char * GetPicRelaId() const; // picture id
+	int GetPicData( const Document & doc, std::vector<char> & data ) const;
+	// TODO : set picture data
+
+	const char * GetObjectRelaId() const; // object id
+	const char * GetObjectProgId() const; // object prog id
+	const char * GetObjectImgRelaId() const; // object image id
+	int GetObjectData( const Document & doc, std::vector<char> & data ) const;
+	int GetObjectImgData( const Document & doc, std::vector<char> & data ) const;
+	// TODO : set object data
 
 	// NOTE : no child ( w:t text is skip and handle by Run )
 
@@ -278,6 +288,9 @@ public:
 	Hyperlink AddSiblingHyperlink( bool add_next = true );
 	Run AddSiblingRun( bool add_next = true );
 };
+
+// TODO : bookmark
+// TODO : comment
 
 class SPD_API Table : public Element
 {
@@ -296,15 +309,12 @@ public:
 	std::vector<int> GetColWidth() const;
 	int GetColWidth( int idx ) const;  
 
-	// TODO : modify
+	// NOTE : child is Row, if set Col, update all child
 	int AddCol( int index, int num = 1 ); // insert new column at index, index begin from 0
 	int DelCol( int index, int num = 1 ); // del column at index
 	int SetColWidth( const std::vector<int> widths ); // min col width is 100, usually shound not < 300
-	
-	int Reset( int row = 1, int col = 1 ); // row and col should >= 1, col should < 80;
-
-	// NOTE : child is Row
 	TRow AddChildTRow( bool add_back = true );
+	int Reset( int row = 1, int col = 1 ); // row and col should >= 1, col should < 80;
 
 	// NOTE : sibling is Paragraph or Table
 	Paragraph AddSiblingParagraph( bool add_next = true );
@@ -317,14 +327,12 @@ private:
 	friend class Document;
 	TRow( pugi::xml_node nd ) : Element( nd ) { }
 
-public:
+public: 
 	TRow( const Element & ele ) : Element( ele ) { }
 	virtual ~TRow() { }
 
 public:
-	// NOTE : no modify
-
-	// NOTE : child is Cell, Auto Add, no func
+	// NOTE : child is Cell, but can not add/del directly, use Table AddCol/DelCol, or use TCell VMerge/Span
 	
 	// NOTE : sibling is TRow
 	TRow AddSiblingTRow( bool add_next = true );
@@ -349,12 +357,12 @@ public:
 	virtual ~TCell() { }
 
 public:
-	int GetSpanNum() const;  // 1 means no span, should >= 1
+	int GetSpanNum() const;       // 1 means no span, should >= 1
 	VMergeTypeE GetVMergeType() const;
-	int GetVMergeNum() const; // 1 means no vmerge, should >= 1,
-	std::string GetText() const;
+	int GetVMergeNum() const;     // 1 means no vmerge, should >= 1,
+	std::string GetText() const;  // only paragraph, ignore table
 
-	// NOTE : modify, only can modify first Cell in span
+	// NOTE : modify Span/VMerge only can modify first Cell in Span/VMerge
 	int SetSpanNum( int num ); // 1 means no span, more span num will remove sibling TCell
 	// 1 means no vmerge, more vmerge will set more sibliing TCell VMergeTypeE::CONT
 	int SetVmergeNum( int num );
@@ -363,7 +371,7 @@ public:
 	Paragraph AddChildParagraph( bool add_back = true );
 	Table AddChildTable( bool add_back = true );
 
-	// NOTE : can not add sibling TCell directly, use SetSpanNum()
+	// NOTE : can not add/del sibling TCell directly, use Table add/del col, or use TCell VMerge/Span
 };
 
 ////////////////////////////////

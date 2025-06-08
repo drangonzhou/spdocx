@@ -35,7 +35,7 @@ public:
 	std::string m_type;  // paragraph, table, character ...
 	std::string m_name;  // "headding 1", "heading 2", ... , "normal",
 	std::string m_numId; // empty means no numbering
-	int m_numLevel = 0;  // 0 means no numbering, level start from 1
+	int m_numLevel = -1;  // level start from 0, -1 means no numbering, 
 };
 
 class SPD_API Relationship
@@ -82,6 +82,9 @@ public:
 	const Relationship * GetRelationship( const char * id ) const;
 	std::vector< const Relationship * > GetAllRelationship() const;
 	int AddRelationship( const Relationship & rela );  // if relationship exist, update it
+
+	int GetEmbedData( const std::string & id, std::vector<char> & data ) const;  // get embedding data in "word/" directly, ex : media/image1.png
+	// TODO : set embed data
 
 protected:
 	static int read_zip( const std::string & fname, std::map< std::string, std::vector<char> > & files );

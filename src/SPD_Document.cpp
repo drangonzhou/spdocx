@@ -521,5 +521,15 @@ int Document::write_rela()
 	return 0;
 }
 
+int Document::GetEmbedData( const std::string & id, std::vector<char> & data ) const
+{
+	std::string name = std::string( "word/" ) + id;
+	auto it = m_files.find( name );
+	if( it == m_files.end() )
+		return -1;
+	data.assign( it->second.begin(), it->second.end() );
+	return 0;
+}
+
 ////////////////////////////////
 END_NS_SPD

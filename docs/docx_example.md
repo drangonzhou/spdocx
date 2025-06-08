@@ -40,6 +40,10 @@ docx 文档本身是一个 zip 压缩包，里面通过多个文件描述文档�
 	...
 </w:p>
 ```
+关联关系：
+* w:pStyle 属性 w:val="1" 关联 word/styles.xml 的 w:style 属性 w:styleId="1" 
+* w:numId 属性 w:val="2" 关联 word/numbering.xml 的 w:num 属性 w:numId="1"
+* w:ilvl 属性 w:val="1" 关联 word/numbering.xml 的 w:abstractNum 下的 w:lvl 属性 w:ilvl="1"
 
 ## 2.3 文本图像等内容块（ w:r ）
 
@@ -83,6 +87,11 @@ docx 文档本身是一个 zip 压缩包，里面通过多个文件描述文档�
 </w:r>
 ```
 
+关联的document.xml.rels里面的图片例子：
+```
+<Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/example.png"/>
+```
+
 ### 2.3.3 嵌入对象（ w:object ）
 
 嵌入 visio 对象
@@ -92,11 +101,17 @@ docx 文档本身是一个 zip 压缩包，里面通过多个文件描述文档�
 	<w:object>
 		<v:shapetype> ... </v:shapetype>
 		<v:shape>
-			<v:imagedata r:id="rId4" />   <!-- 图片，emf图片，引用 word/_rels/document.xml.rels -->
+			<v:imagedata r:id="rId5" />   <!-- 图片，emf图片，引用 word/_rels/document.xml.rels -->
 		</v:shape>
-		o:OLEObject Type="Embed" ProgID="Visio.Drawing.15" r:id="rId5"/>   <!-- 嵌入对象，visio文件，引用 word/_rels/document.xml.rels -->
+		<o:OLEObject Type="Embed" ProgID="Visio.Drawing.15" r:id="rId6"/>   <!-- 嵌入对象，visio文件，引用 word/_rels/document.xml.rels -->
 	</w:object>
 </w:r>
+```
+
+关联的document.xml.rels里面的visio数据例子：
+```
+<Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image1.emf"/>
+<Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/package" Target="embeddings/Microsoft_Visio___.vsdx"/>
 ```
 
 ## 2.4 超链接（ w:hyperlink ）
@@ -104,7 +119,7 @@ docx 文档本身是一个 zip 压缩包，里面通过多个文件描述文档�
 指向外部超链接
 
 ```
-<w:hyperlinkr:id="rId2">  <!-- 外部超链接，引用word/_rels/document.xml.rels -->
+<w:hyperlink r:id="rId2">  <!-- 外部超链接，引用word/_rels/document.xml.rels -->
 	<w:r> ... </w:r>
 	...
 </w:hyperlink>
@@ -242,7 +257,7 @@ docx 文档本身是一个 zip 压缩包，里面通过多个文件描述文档�
 	<w:multiLevelType w:val="multilevel"/>
 	<w:numStyleLink w:val="XXX"/>     <!-- 表示引用另一个模版  -->
 	<w:styleLink w:val="XXX"/>        <!-- 表示可以被引用  -->
-	<w:lvl w:ilvl="0" >
+	<w:lvl w:ilvl="1" >
 		<w:start w:val="1"/>
 		<w:numFmt w:val="chineseCountingThousand"/>
 		...
@@ -255,7 +270,7 @@ docx 文档本身是一个 zip 压缩包，里面通过多个文件描述文档�
 ## 5.3 列表实例 （ w:num ）
 
 ```
-<w:num>
+<w:num w:numId="1">
 	<w:abstractNumId w:val="1" />   <!-- 引用模版  -->
 </w:num>
 ```

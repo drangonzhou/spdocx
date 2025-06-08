@@ -75,7 +75,7 @@ ElementTypeE Element::GetNodeType( pugi::xml_node nd )
 		type = ElementTypeE::PARAGRAPH;
 	}
 	else if( strcmp( nd.name(), "w:r" ) == 0 ) {
-		if( !nd.child( "w:t" ).empty() ) {
+		if( !nd.child( "w:t" ).empty() || !nd.child( "w:drawing" ).empty() || !nd.child( "w:object" ).empty() ) {
 			type = ElementTypeE::RUN;
 		}
 		// TODO (later) : other w:r, ex w:commentReference
@@ -197,10 +197,9 @@ const char * Paragraph::GetStyleId() const
 	return attr.value();
 }
 
-const char * Paragraph::GetStyleName( const Document * doc ) const
+const char * Paragraph::GetStyleName( const Document & doc ) const
 {
-	pugi::xml_attribute attr = m_nd.child( "w:pPr" ).child( "w:pStyle" ).attribute( "w:val" );
-	return doc->GetStyleName( attr.value() );
+	return doc.GetStyleName( GetStyleId() );
 }
 
 const char * Paragraph::GetNumId() const
@@ -213,7 +212,7 @@ int Paragraph::GetNumLevel() const
 {
 	pugi::xml_attribute attr = m_nd.child( "w:pPr" ).child( "w:numPr" ).child( "w:ilvl" ).attribute( "w:val" );
 	const char * val = attr.value();
-	return ( val != nullptr ) ? atoi( val ) : 0;
+	return ( val != nullptr ) ? atoi( val ) : -1;
 }
 
 int Paragraph::SetStyleId( const char * id )
@@ -235,10 +234,9 @@ int Paragraph::SetStyleId( const char * id )
 	return 0;
 }
 
-int Paragraph::SetStyleName( const char * name, const Document * doc )
+int Paragraph::SetStyleName( const char * name, const Document & doc )
 {
-	const char * id = doc->GetStyleId( name );
-	return SetStyleId( id );
+	return SetStyleId( doc.GetStyleId( name ) );
 }
 
 int Paragraph::SetNumId( const char * id )
@@ -267,7 +265,7 @@ int Paragraph::SetNumLevel( int level )
 	pugi::xml_node nd = Element::GetCreateChild( m_nd, "w:pPr" );
 	pugi::xml_node nd2 = Element::GetCreateChild( nd, "w:numPr" );
 	pugi::xml_node nd3 = nd2.child( "w:ilvl" );
-	if( level == 0 ) {
+	if( level == -1 ) {
 		if( nd3 ) {
 			nd2.remove_child( "w:ilvl" );
 		}
@@ -333,41 +331,41 @@ const char * Hyperlink::GetAnchor() const
 	return m_nd.attribute( "w:anchor" ).value();
 }
 
-const char * Hyperlink::GetRelationshipId() const
+const char * Hyperlink::GetRelaId() const
 {
 	return m_nd.attribute( "r:id" ).value();
 }
 
-const Relationship * Hyperlink::GetRelationship( const Document * doc ) const
+const Relationship * Hyperlink::GetRela( const Document & doc ) const
 {
-	return doc->GetRelationship( m_nd.attribute( "r:id" ).value() );
+	return doc.GetRelationship( m_nd.attribute( "r:id" ).value() );
 }
 
-const char * Hyperlink::GetLinkType( const Document * doc ) const
+const std::string & Hyperlink::GetRelaType( const Document & doc ) const
 {
-	const Relationship * rela = doc->GetRelationship( m_nd.attribute( "r:id" ).value() );
+	const Relationship * rela = doc.GetRelationship( m_nd.attribute( "r:id" ).value() );
 	if( rela == nullptr ) {
-		return nullptr;
+		return std::string("");
 	}
-	return rela->m_type.c_str();
+	return rela->m_type;
 }
 
-const char * Hyperlink::GetTargetMode( const Document * doc ) const
+const std::string & Hyperlink::GetRelaTargetMode( const Document & doc ) const
 {
-	const Relationship * rela = doc->GetRelationship( m_nd.attribute( "r:id" ).value() );
+	const Relationship * rela = doc.GetRelationship( m_nd.attribute( "r:id" ).value() );
 	if( rela == nullptr ) {
-		return nullptr;
+		return std::string( "" );
 	}
-	return rela->m_targetMode.c_str();
+	return rela->m_targetMode;
 }
 
-const char * Hyperlink::GetTarget( const Document * doc ) const
+const std::string & Hyperlink::GetRelaTarget( const Document & doc ) const
 {
-	const Relationship * rela = doc->GetRelationship( m_nd.attribute( "r:id" ).value() );
+	const Relationship * rela = doc.GetRelationship( m_nd.attribute( "r:id" ).value() );
 	if( rela == nullptr ) {
-		return nullptr;
+		return std::string( "" );
 	}
-	return rela->m_target.c_str();
+	return rela->m_target;
 }
 
 std::string Hyperlink::GetText() const
@@ -396,7 +394,7 @@ int Hyperlink::SetAnchor( const char * anchor )
 	return 0;
 }
 
-int Hyperlink::SetRelationshipId( const char * id )
+int Hyperlink::SetRelaId( const char * id )
 {
 	pugi::xml_attribute attr = m_nd.attribute( "r:id" );
 	if( id == nullptr || id[0] == '\0' ) {
@@ -431,10 +429,24 @@ Run Hyperlink::AddSiblingRun( bool add_next )
 	return Run( Element( nd ) );
 }
 
-bool Run::IsPicture() const
+bool Run::IsText() const
+{
+	pugi::xml_node nd = m_nd.child( "w:t" );
+	return nd.empty() ? false : true;
+}
+
+bool Run::IsPic() const
 {
 	// check xml node for picture
-	return false;
+	pugi::xml_node nd = m_nd.child( "w:drawing" );
+	return nd.empty() ? false : true;
+}
+
+bool Run::IsObject() const
+{
+	// check xml node for object
+	pugi::xml_node nd = m_nd.child( "w:object" );
+	return nd.empty() ? false : true;
 }
 
 const char * Run::GetColor() const
@@ -631,16 +643,58 @@ void Run::SetText( const char * text )
 	return;
 }
 
-std::string Run::GetPicID() const
+const char * Run::GetPicRelaId() const
 {
-	// TODO 
-	return std::string();
+	return m_nd.child( "w:drawing" ).child( "wp:anchor" ).child( "a:graphic" ).child( "a:graphicData" )
+		.child( "pic:pic" ).child( "pic:blipFill" ).child( "a:blip" ).attribute( "r:embed" ).value();
 }
 
-int Run::GetPicData( std::vector<char>& data )
+int  Run::GetPicData( const Document & doc, std::vector<char> & data ) const
 {
-	// TODO
-	return 0;
+	const char * picid = GetPicRelaId();
+	if( picid == nullptr || picid[0] == '\0' )
+		return -1;
+	const Relationship * rela = doc.GetRelationship( picid );
+	if( rela == nullptr )
+		return -1;
+	return doc.GetEmbedData( rela->m_target, data );
+}
+
+const char * Run::GetObjectRelaId() const
+{
+	return m_nd.child( "w:object" ).child( "o:OLEObject" ).attribute( "r:id" ).value();
+}
+
+const char * Run::GetObjectProgId() const
+{
+	return m_nd.child( "w:object" ).child( "o:OLEObject" ).attribute( "ProgID" ).value();
+}
+
+const char * Run::GetObjectImgRelaId() const
+{
+	return m_nd.child( "w:object" ).child( "v:shape" ).child( "v:imagedata" ).attribute( "r:id" ).value();
+}
+
+int Run::GetObjectData( const Document & doc, std::vector<char> & data ) const
+{
+	const char * picid = GetObjectRelaId();
+	if( picid == nullptr || picid[0] == '\0' )
+		return -1;
+	const Relationship * rela = doc.GetRelationship( picid );
+	if( rela == nullptr )
+		return -1;
+	return doc.GetEmbedData( rela->m_target, data );
+}
+
+int Run::GetObjectImgData( const Document & doc, std::vector<char> & data ) const
+{
+	const char * picid = GetObjectImgRelaId();
+	if( picid == nullptr || picid[0] == '\0' )
+		return -1;
+	const Relationship * rela = doc.GetRelationship( picid );
+	if( rela == nullptr )
+		return -1;
+	return doc.GetEmbedData( rela->m_target, data );
 }
 
 Hyperlink Run::AddSiblingHyperlink( bool add_next )
@@ -843,19 +897,21 @@ int TCell::GetVMergeNum() const
 		return -1;
 	else {
 		int num = 1;
-		TCell next = GetNext();
-		while( true )
-		{
-			if( next.GetType() != ElementTypeE::TABLE_CELL )
-				break;
-			if( next.GetVMergeType() != VMergeTypeE::CONT )
-				break;
-			++num;
-			next = next.GetNext();
-		}
-		if( num == 1 ) {
-			SPD_PR_DEBUG( "vmerge start no vmerge cont" );
-		}
+	//	TCell next = GetNext();
+	//	while( true )
+	//	{
+	//		if( next.GetType() != ElementTypeE::TABLE_CELL )
+	//			break;
+	//		if( next.GetVMergeType() != VMergeTypeE::CONT )
+	//			break;
+	//		++num;
+	//		next = next.GetNext();
+	//	}
+	//	if( num == 1 ) {
+	//		SPD_PR_DEBUG( "vmerge start no vmerge cont" );
+	//	}
+	
+		// TODO : search next row same col for vmerge cont
 		return num;
 	}
 	return -1; // never here

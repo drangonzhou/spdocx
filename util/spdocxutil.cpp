@@ -50,10 +50,13 @@ END_NS_SPD
 
 using namespace spd;
 
-static void dump_element( const Document * doc, Element ele, int level )
+static void dump_element( const Document & doc, Element ele, int level )
 {
 	static const char pre[16] = "               ";
 	const char * p = ( level >= 15 ) ? pre : pre + 15 - level;
+	int cell = 0;
+	int col = 0;
+	int row = 0;
 	for( ; ele.GetType() != ElementTypeE::INVALID; ele = ele.GetNext() ) {
 		printf( "%s[%s] (%d)\n", p, ele.GetTag(), (int)ele.GetType() );
 		switch( ele.GetType() )
@@ -68,28 +71,43 @@ static void dump_element( const Document * doc, Element ele, int level )
 		case ElementTypeE::HYPERLINK :
 		{
 			Hyperlink hlk = ele;
-			printf( "<anchor> [%s]\n", hlk.GetAnchor() );
-			printf( "<linkType> [%s]\n", hlk.GetLinkType( doc ) );
-			printf( "<target> mode [%s] : [%s]\n", hlk.GetTargetMode( doc ), hlk.GetTarget( doc ) );
+			printf( "<Anchor> [%s]\n", hlk.GetAnchor() ? hlk.GetAnchor() : "<nullptr>" );
+			printf( "<RelaId> [%s]\n", hlk.GetRelaId() ? hlk.GetRelaId() : "<nullptr>" );
+			if( hlk.GetRelaId() != nullptr ) {
+				printf( "<RelaType> [%s]\n", hlk.GetRelaType( doc ).c_str() );
+				printf( "<TargetMode> [%s]\n", hlk.GetRelaTargetMode( doc ).c_str() );
+				printf( "<Target> [%s]\n", hlk.GetRelaTarget( doc ).c_str() );
+			}
 			printf( "<text> [%s]\n", hlk.GetText().c_str() );
 		}
 			break;
 		case ElementTypeE::RUN :
 		{
 			Run run = ele;
-			printf( "<color> [%s], <hightline> [%s]\n", run.GetColor(), run.GetHighline() );
-			printf( "<bold> [%s], <italic> [%s], <underline> [%s], <strike> [%s], <dstrike> [%s]\n", 
-				run.GetBold() ? "true" : "false",
-				run.GetItalic() ? "true" : "false",
-				run.GetUnderline(), 
-				run.GetStrike() ? "true" : "false",
-				run.GetDoubleStrike() ? "true" : "false" );
-			printf( "<text> [%s]\n", run.GetText().c_str() );
+			if( run.IsText() ) {
+				printf( "<color> [%s], <hightline> [%s]\n", run.GetColor(), run.GetHighline() );
+				printf( "<bold> [%s], <italic> [%s], <underline> [%s], <strike> [%s], <dstrike> [%s]\n",
+					run.GetBold() ? "true" : "false",
+					run.GetItalic() ? "true" : "false",
+					run.GetUnderline(),
+					run.GetStrike() ? "true" : "false",
+					run.GetDoubleStrike() ? "true" : "false" );
+				printf( "<text> [%s]\n", run.GetText().c_str() );
+			}
+			else if( run.IsPic() ) {
+				printf( "<PicId> [%s]\n", run.GetPicRelaId() ? run.GetPicRelaId() : "<nullptr>" );
+			}
+			else if( run.IsObject() ) {
+				printf( "<ObjectId> [%s]\n", run.GetObjectRelaId() ? run.GetObjectRelaId() : "<nullptr>" );
+				printf( "<ProgId> [%s]\n", run.GetObjectProgId() ? run.GetObjectProgId() : "<nullptr>" );
+				printf( "<ImgId> [%s]\n", run.GetObjectImgRelaId() ? run.GetObjectImgRelaId() : "<nullptr>" );
+			}
 		}
 			break;
 		case ElementTypeE::TABLE :
 		{
 			Table tbl = ele;
+			row = 0;
 			printf( "<table> Row %d, Col %d, width [", tbl.GetRowNum(), tbl.GetColNum() );
 			for( int i = 0; i < tbl.GetColNum(); ++i ) {
 				if( i != 0 )
@@ -100,14 +118,21 @@ static void dump_element( const Document * doc, Element ele, int level )
 		}
 			break;
 		case ElementTypeE::TABLE_ROW :
-			printf( "<table row>\n" );
+			printf( "<table row %d>\n", row++ );
+			cell = 0;
+			col = 0;
 			break;
 		case ElementTypeE::TABLE_CELL :
 		{
 			TCell tc = ele;
-			printf( "<table cell> span %d, vmerge %d\n", tc.GetSpanNum(), (int)tc.GetVMergeType() );
+			printf( "<table cell %d (col %d)> span %d, vmerge %d\n", cell, col, tc.GetSpanNum(), (int)tc.GetVMergeType() );
+			++cell;
+			col += tc.GetSpanNum();
 			printf( "<text> [%s]", tc.GetText().c_str() );
 		}
+			break;
+		case ElementTypeE::BOOKMARK_END :
+			printf( "<bookmark end>\n" );
 			break;
 		default:
 			break;
@@ -135,7 +160,7 @@ static int dumpinfo( const char * fname )
 	Element ele2 = ele.GetParent();
 	printf( "parent is %d\n", (int)ele2.GetType() );
 
-	dump_element( &doc, ele, 0 );
+	dump_element( doc, ele, 0 );
 
 	ele = Element(); // nullptr
 	doc.Close();
@@ -281,8 +306,8 @@ int main( int argc, char * argv[] )
 
 	if( strcmp( argv[1], "dumpinfo" ) == 0 && argc >= 3 ) {
 		dumpinfo( argv[2] );
-		char utf8_string[] = "\xE4\xB8\xAD\xE6\x96\x87.docx"; // 中文.docx
-		dumpinfo( utf8_string );
+		//char utf8_string[] = "\xE4\xB8\xAD\xE6\x96\x87.docx"; // 中文.docx
+		//dumpinfo( utf8_string );
 	}
 	else if( strcmp( argv[1], "dumpdirjson" ) == 0 && argc >= 3 ) {
 		dumpdirjson( argv[2] );
