@@ -84,7 +84,8 @@ public:
 	int AddRelationship( const Relationship & rela );  // if relationship exist, update it
 
 	int GetEmbedData( const std::string & id, std::vector<char> & data ) const;  // get embedding data in "word/" directly, ex : media/image1.png
-	// TODO : set embed data
+	int SetEmbedData( const std::string & id, const std::vector<char> & data );  // set embedding data in "word/" directly, ex : media/image1.png
+	int SetEmbedData( const std::string & id, std::vector<char> && data );
 
 protected:
 	static int read_zip( const std::string & fname, std::map< std::string, std::vector<char> > & files );

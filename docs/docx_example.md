@@ -87,7 +87,7 @@ docx 文档本身是一个 zip 压缩包，里面通过多个文件描述文档�
 </w:r>
 ```
 
-关联的document.xml.rels里面的图片例子：
+通过 r:embed 关联的 document.xml.rels 里面的 Relationship 的 Id ：
 ```
 <Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/example.png"/>
 ```
@@ -108,7 +108,7 @@ docx 文档本身是一个 zip 压缩包，里面通过多个文件描述文档�
 </w:r>
 ```
 
-关联的document.xml.rels里面的visio数据例子：
+visio 文件及其图片通过 r:id 关联的 document.xml.rels 里面的 Id ：
 ```
 <Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image1.emf"/>
 <Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/package" Target="embeddings/Microsoft_Visio___.vsdx"/>

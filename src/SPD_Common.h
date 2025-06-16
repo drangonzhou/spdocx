@@ -27,7 +27,7 @@
 #define SPD_API
 #endif // _WIN32 else
 
-#define SPD_LIB_VERSION "0.4.1"
+#define SPD_LIB_VERSION "0.5.3"
 
 #define BEGIN_NS_SPD namespace spd {
 #define END_NS_SPD }

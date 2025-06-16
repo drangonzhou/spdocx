@@ -531,5 +531,24 @@ int Document::GetEmbedData( const std::string & id, std::vector<char> & data ) c
 	return 0;
 }
 
+int Document::SetEmbedData( const std::string & id, const std::vector<char> & data )
+{
+	if( id.empty() )
+		return -1;
+	std::string name = std::string( "word/" ) + id;
+	m_files[name] = data;
+	return 0;
+}
+
+int Document::SetEmbedData( const std::string & id, std::vector<char> && data )
+{
+	if( id.empty() )
+		return -1;
+	std::string name = std::string( "word/" ) + id;
+	m_files[name] = std::move(data);
+	return 0;
+
+}
+
 ////////////////////////////////
 END_NS_SPD

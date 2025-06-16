@@ -273,14 +273,18 @@ public:
 
 	const char * GetPicRelaId() const; // picture id
 	int GetPicData( const Document & doc, std::vector<char> & data ) const;
-	// TODO : set picture data
+	int SetPic( const char * id );
+	int SetPic( const char * id, Document & doc, const std::vector<char> & data );
+	int SetPic( const char * id, Document & doc, std::vector<char> && data );
 
 	const char * GetObjectRelaId() const; // object id
 	const char * GetObjectProgId() const; // object prog id
 	const char * GetObjectImgRelaId() const; // object image id
 	int GetObjectData( const Document & doc, std::vector<char> & data ) const;
 	int GetObjectImgData( const Document & doc, std::vector<char> & data ) const;
-	// TODO : set object data
+	int SetObject( const char * objid, const char * progid, const char * imgid );
+	int SetObject( const char * objid, const char * progid, const char * imgid, Document & doc, const std::vector<char> & objdata, const std::vector<char> & imgdata );
+	int SetObject( const char * objid, const char * progid, const char * imgid, Document & doc, std::vector<char> && objdata, std::vector<char> && imgdata );
 
 	// NOTE : no child ( w:t text is skip and handle by Run )
 
@@ -316,6 +320,9 @@ public:
 	TRow AddChildTRow( bool add_back = true );
 	int Reset( int row = 1, int col = 1 ); // row and col should >= 1, col should < 80;
 
+	//
+	int DelRow( Element & row ); // del row, row must exist, need special handle of Cell with VMerge
+
 	// NOTE : sibling is Paragraph or Table
 	Paragraph AddSiblingParagraph( bool add_next = true );
 	Table AddSiblingTable( bool add_next = true );
@@ -332,6 +339,8 @@ public:
 	virtual ~TRow() { }
 
 public:
+	TCell GetCell( int col, int & idx );
+
 	// NOTE : child is Cell, but can not add/del directly, use Table AddCol/DelCol, or use TCell VMerge/Span
 	
 	// NOTE : sibling is TRow
@@ -357,15 +366,17 @@ public:
 	virtual ~TCell() { }
 
 public:
-	int GetSpanNum() const;       // 1 means no span, should >= 1
+	int GetCol() const;
+	int GetSpanNum() const;       // 1 means no span, has span should >= 1
 	VMergeTypeE GetVMergeType() const;
-	int GetVMergeNum() const;     // 1 means no vmerge, should >= 1,
+	int GetVMergeNum() const;     // 1 means no vmerge, vmerge start should >= 1, not valid for vmerge cont return -1
 	std::string GetText() const;  // only paragraph, ignore table
 
 	// NOTE : modify Span/VMerge only can modify first Cell in Span/VMerge
 	int SetSpanNum( int num ); // 1 means no span, more span num will remove sibling TCell
-	// 1 means no vmerge, more vmerge will set more sibliing TCell VMergeTypeE::CONT
-	int SetVmergeNum( int num );
+	// 1 means no vmerge, more vmerge will set this cell START and more v-sibliing TCell CONT
+	int SetVMergeType( VMergeTypeE type );  // note, need handle v-sibling TCell by hand if needed
+	int SetVMergeNum( int num );            // 1 means no vmerge, more vmerge will set this cell START and more v-sibliing TCell CONT
 
 	// NOTE : child is Paragraph or Table
 	Paragraph AddChildParagraph( bool add_back = true );
