@@ -64,6 +64,8 @@ class Table;
 class TRow;
 class TCell;
 
+extern const std::string g_ElementEmptyStr;
+
 class SPD_API Element
 {
 protected:

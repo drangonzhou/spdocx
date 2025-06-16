@@ -23,6 +23,8 @@
 BEGIN_NS_SPD
 ////////////////////////////////
 
+const std::string g_ElementEmptyStr = std::string("");
+
 static bool is_skipped_node( pugi::xml_node nd )
 {
 	// don't skip unknown node, only skip known unused node and nodes that already used by parent
@@ -351,7 +353,7 @@ const std::string & Hyperlink::GetRelaType( const Document & doc ) const
 {
 	const Relationship * rela = doc.GetRelationship( m_nd.attribute( "r:id" ).value() );
 	if( rela == nullptr ) {
-		return std::string("");
+		return g_ElementEmptyStr;
 	}
 	return rela->m_type;
 }
@@ -360,7 +362,7 @@ const std::string & Hyperlink::GetRelaTargetMode( const Document & doc ) const
 {
 	const Relationship * rela = doc.GetRelationship( m_nd.attribute( "r:id" ).value() );
 	if( rela == nullptr ) {
-		return std::string( "" );
+		return g_ElementEmptyStr;
 	}
 	return rela->m_targetMode;
 }
@@ -369,7 +371,7 @@ const std::string & Hyperlink::GetRelaTarget( const Document & doc ) const
 {
 	const Relationship * rela = doc.GetRelationship( m_nd.attribute( "r:id" ).value() );
 	if( rela == nullptr ) {
-		return std::string( "" );
+		return g_ElementEmptyStr;
 	}
 	return rela->m_target;
 }
