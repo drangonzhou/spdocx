@@ -839,22 +839,106 @@ int Table::GetColWidth( int idx ) const
 	return pnd.attribute( "w:w" ).as_int();
 }
 
-int Table::AddCol( int index, int num )
+int Table::AddCol( int index )
 {
-	// TODO : update column size
+	int colnum = GetColNum();
+	if( index < 0 || index > colnum )
+		return -1;
+
+	// update column size
+	std::vector<int> widths = GetColWidth();
+	widths.insert( widths.begin() + index, 0 );
+	if( index == 0 ) {
+		int size = widths[1] / 2;
+		widths[0] = widths[1] = size < 100 ? 100 : size;
+	}
+	else if( index == colnum ) {
+		int size = widths[index - 1] / 2;
+		widths[index] = widths[index - 1] = size < 100 ? 100 : size;
+	}
+	else {
+		int size1 = widths[index - 1] / 3 * 2;
+		int size3 = widths[index + 1] / 3 * 2;
+		int size2 = size1 / 2 + size3 / 2;
+		widths[index - 1] = size1 < 100 ? 100 : size1;
+		widths[index] = size2 < 100 ? 100 : size2;
+		widths[index + 1] = size3 < 100 ? 100 : size3;
+	}
+	SetColWidth( widths );
 
 	// add cell to every row
-	return -1;
+	Element ele;
+	for( ele = GetFirstChild(); ele.IsValid(); ele = ele.GetNext() )
+	{
+		TRow row = TRow( ele );
+		if( index == 0 ) {
+			m_nd.prepend_child( "w:tc" );
+		}
+		else if( index == colnum ) {
+			m_nd.append_child( "w:tc" );
+		}
+		else {
+			int firstcol = -1;
+			int span = -1;
+			TCell cell = row.GetCell( index, firstcol, span );
+			if( index == firstcol ) {
+				row.m_nd.insert_child_before( "w:tc", cell.m_nd );
+			}
+			else if( index == firstcol + span ) {
+				row.m_nd.insert_child_after( "w:tc", cell.m_nd );
+			}
+			else {
+				// set current node gridSpan, merge other cell to this
+				pugi::xml_node pnd = cell.m_nd.child( "w:tcPr" ).child( "w:gridSpan" );
+				if( pnd.empty() ) {
+					pnd = cell.m_nd.child( "w:tcPr" ).append_child( "w:gridSpan" );
+				}
+				pnd.attribute( "w:val" ) = span + 1;
+			}
+		}
+	}
+	return 0;
 }
 
-int Table::DelCol( int index, int num )
+int Table::DelCol( int index )
 {
-	// TODO : only one column can not delete
-	
-	// update column
+	// only one column can not delete
+	int colnum = GetColNum();
+	if( index < 0 || index >= colnum || colnum == 1 )
+		return -1;
+
+	// update column size
+	std::vector<int> widths = GetColWidth();
+	if( index == 0 ) {
+		widths[1] += widths[0];
+	}
+	else{
+		widths[index - 1] += widths[index];
+	}
+	widths.erase( widths.begin() + index );
+	SetColWidth( widths );
 
 	// del cell in every row
-	return -1;
+	Element ele;
+	for( ele = GetFirstChild(); ele.IsValid(); ele = ele.GetNext() )
+	{
+		TRow row = TRow( ele );
+		int firstcol = -1;
+		int span = -1;
+		TCell cell = row.GetCell( index, firstcol, span );
+		if( span == 1 ) {
+			row.m_nd.remove_child( cell.m_nd );
+		}
+		else if( span == 2 ) {
+			cell.m_nd.child( "w:tcPr" ).remove_child( "w:gridSpan" );
+		}
+		else {
+			// set current node gridSpan, merge other cell to this
+			pugi::xml_node pnd = cell.m_nd.child( "w:tcPr" ).child( "w:gridSpan" );
+			pnd.attribute( "w:val" ) = span - 1;
+		}
+	}
+	return 0;
 }
 
 int Table::SetColWidth( const std::vector<int> widths )
@@ -934,23 +1018,21 @@ int Table::DelRow( Element & row )
 		if( vmt == VMergeTypeE::START ) {
 			TRow next_row1 = curr_row.GetNext();
 			if( next_row1.IsValid() ) {
-				int idx1 = 0;
-				TCell next_cell1 = next_row1.GetCell( curr_col, idx1 );
+				TCell next_cell1 = next_row1.GetCell( curr_col );
 				VMergeTypeE type = next_cell1.GetVMergeType();
 				if( type == VMergeTypeE::CONT ) {
 					TRow next_row2 = next_row1.GetNext();
 					if( next_row2.IsValid() ) {
-						int idx2 = 0;
-						TCell next_cell2 = next_row2.GetCell( curr_col, idx2 );
+						TCell next_cell2 = next_row2.GetCell( curr_col );
 						if( next_cell2.GetVMergeType() != VMergeTypeE::CONT ) {
-							next_cell1.SetVMergeType( VMergeTypeE::NONE );
+							next_cell1.set_vmerge_type( VMergeTypeE::NONE );
 						}
 						else {
-							next_cell1.SetVMergeType( VMergeTypeE::START );
+							next_cell1.set_vmerge_type( VMergeTypeE::START );
 						}
 					}
 					else {
-						next_cell1.SetVMergeType( VMergeTypeE::NONE );
+						next_cell1.set_vmerge_type( VMergeTypeE::NONE );
 					}
 				}
 				else {
@@ -964,23 +1046,21 @@ int Table::DelRow( Element & row )
 		else if( vmt == VMergeTypeE::CONT ) {
 			TRow prev_row1 = curr_row.GetPrev();
 			if( prev_row1.IsValid() ) {
-				int idx1 = 0;
-				TCell prev_cell1 = prev_row1.GetCell( curr_col, idx1 );
+				TCell prev_cell1 = prev_row1.GetCell( curr_col );
 				VMergeTypeE type = prev_cell1.GetVMergeType();
 				if( type == VMergeTypeE::START ) {
 					TRow next_row1 = curr_row.GetNext();
 					if( next_row1.IsValid() ) {
-						int idx2 = 0;
-						TCell next_cell1 = next_row1.GetCell( curr_col, idx2 );
+						TCell next_cell1 = next_row1.GetCell( curr_col );
 						if( next_cell1.GetVMergeType() != VMergeTypeE::CONT ) {
-							prev_cell1.SetVMergeType( VMergeTypeE::NONE );
+							prev_cell1.set_vmerge_type( VMergeTypeE::NONE );
 						}
 						else {
 							// no need to do anything
 						}
 					}
 					else {
-						prev_cell1.SetVMergeType( VMergeTypeE::NONE );
+						prev_cell1.set_vmerge_type( VMergeTypeE::NONE );
 					}
 				}
 				else if( type == VMergeTypeE::CONT ) {
@@ -1017,28 +1097,34 @@ Table Table::AddSiblingTable( bool add_next )
 	return tbl;
 }
 
-TCell TRow::GetCell( int col, int & idx )
+TCell TRow::GetCell( int col ) const
+{ 
+	int unused1 = 0; 
+	int unused2 = 0;  
+	return GetCell( col, unused1, unused2 ); 
+}
+
+TCell TRow::GetCell( int col, int & firstcol, int &span ) const
 {
 	if( col < 0 ) {
-		idx = -1;
+		firstcol = span = -1;
 		return TCell( Element() );
 	}
 	Element child = GetFirstChild();
 	int curr_col = 0;
-	int curr_idx = 0;
 	while( child.IsValid() ) {
 		TCell cell = TCell( child );
-		int span = cell.GetSpanNum();
-		if( curr_col <= col && col < curr_col + span ) {
-			idx = curr_idx;
+		int curr_span = cell.GetSpanNum();
+		if( curr_col <= col && col < curr_col + curr_span ) {
+			firstcol = curr_col;
+			span = curr_span;
 			return cell;
 		}
 		child = child.GetNext();
-		curr_col += span;
-		curr_idx += 1;
+		curr_col += curr_span;
 	}
 	// not found
-	idx = -1;
+	firstcol = span = -1;
 	return TCell( Element() );
 }
 
@@ -1046,13 +1132,45 @@ TRow TRow::AddSiblingTRow( bool add_next )
 {
 	pugi::xml_node nd = add_next ? m_nd.parent().insert_child_after( "w:tr", m_nd )
 		: m_nd.parent().insert_child_before( "w:tr", m_nd );
-	// TODO : add cell
+	nd.append_child( "w:trPr" );
+	// add cell
+	int col;
+	TCell cell = TCell( Element() );
+	for( cell = TCell( GetFirstChild() ), col = 0; cell.IsValid(); col += cell.GetSpanNum(), cell = TCell( cell.GetNext() ) )
+	{
+		pugi::xml_node cnd = nd.append_child( "w:tc" );
+		pugi::xml_node tcpr = cnd.append_child( "w:tcPr" );
+		if( cell.GetSpanNum() > 1 ) {
+			cnd.append_child( "w:gridSpan" ).append_attribute( "w:val" ).set_value( cell.GetSpanNum() );
+		}
+		if( add_next == true && cell.GetVMergeType() == VMergeTypeE::START )
+		{
+			tcpr.append_child( "w:vMerge" ).append_attribute( "w:val" ).set_value( "continue" );
+		}
+		else if( add_next == true && cell.GetVMergeType() == VMergeTypeE::CONT )
+		{
+			TRow nnrow = TRow( Element( nd.next_sibling() ) );
+			if( nnrow.IsValid() ) {
+				TCell nncell = nnrow.GetCell( col );
+				if( nncell.GetVMergeType() == VMergeTypeE::CONT ) {
+					tcpr.append_child( "w:vMerge" ).append_attribute( "w:val" ).set_value( "continue" );
+				}
+			}
+		}
+		else if( add_next == false && cell.GetVMergeType() == VMergeTypeE::CONT )
+		{
+			tcpr.append_child( "w:vMerge" ).append_attribute( "w:val" ).set_value( "continue" );
+		}
+		else {
+			// do nothing
+		}
+	}
+
 	return TRow( Element( nd ) );
 }
 
 int TCell::GetCol() const
 {
-	// TODO : get col
 	int col = 0;
 	Element ele = GetPrev();
 	while( ele.GetType() == ElementTypeE::TABLE_CELL )
@@ -1105,8 +1223,7 @@ int TCell::GetVMergeNum() const
 		TRow row = GetParent();
 		TRow next_row = row.GetNext();
 		while( next_row.IsValid() ) {
-			int idx = 0;
-			TCell next_cell = next_row.GetCell( col, idx );
+			TCell next_cell = next_row.GetCell( col );
 			if( next_cell.GetVMergeType() == VMergeTypeE::CONT )
 				num += 1;
 			else
@@ -1209,7 +1326,7 @@ int TCell::SetSpanNum( int num )
 	return 0; 
 }
 
-int TCell::SetVMergeType( VMergeTypeE type )
+int TCell::set_vmerge_type( VMergeTypeE type )
 {
 	if( type == VMergeTypeE::NONE ) {
 		pugi::xml_node pnd = m_nd.child( "w:tcPr" );

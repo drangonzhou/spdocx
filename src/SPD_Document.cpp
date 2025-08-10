@@ -15,7 +15,7 @@
 // along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "SPD_Document.h"
-#include "SPD_NewDoc.h"
+#include "SPD_NewDocData.h"
 
 #include <zip.h>
 #include <memory>

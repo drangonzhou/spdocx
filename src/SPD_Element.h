@@ -316,8 +316,8 @@ public:
 	int GetColWidth( int idx ) const;  
 
 	// NOTE : child is Row, if set Col, update all child
-	int AddCol( int index, int num = 1 ); // insert new column at index, index begin from 0
-	int DelCol( int index, int num = 1 ); // del column at index
+	int AddCol( int index ); // insert new column at index, index begin from 0
+	int DelCol( int index ); // del column at index
 	int SetColWidth( const std::vector<int> widths ); // min col width is 100, usually shound not < 300
 	TRow AddChildTRow( bool add_back = true );
 	int Reset( int row = 1, int col = 1 ); // row and col should >= 1, col should < 80;
@@ -341,7 +341,9 @@ public:
 	virtual ~TRow() { }
 
 public:
-	TCell GetCell( int col, int & idx );
+	int GetColNum() const { Table tb = Table( GetParent() ); return tb.GetColNum(); }
+	TCell GetCell( int col ) const;
+	TCell GetCell( int col, int & firstcol, int & span ) const;  // if this cell is span, spancol is the first col of span
 
 	// NOTE : child is Cell, but can not add/del directly, use Table AddCol/DelCol, or use TCell VMerge/Span
 	
@@ -374,10 +376,8 @@ public:
 	int GetVMergeNum() const;     // 1 means no vmerge, vmerge start should >= 1, not valid for vmerge cont return -1
 	std::string GetText() const;  // only paragraph, ignore table
 
-	// NOTE : modify Span/VMerge only can modify first Cell in Span/VMerge
-	int SetSpanNum( int num ); // 1 means no span, more span num will remove sibling TCell
-	// 1 means no vmerge, more vmerge will set this cell START and more v-sibliing TCell CONT
-	int SetVMergeType( VMergeTypeE type );  // note, need handle v-sibling TCell by hand if needed
+	// NOTE : modify Span/VMerge only can modify first Cell in Span/VMerge, and following cell should be no span/merge
+	int SetSpanNum( int num ); // 1 means no span, more span num will remove sibling TCell, can not set VCONT
 	int SetVMergeNum( int num );            // 1 means no vmerge, more vmerge will set this cell START and more v-sibliing TCell CONT
 
 	// NOTE : child is Paragraph or Table
@@ -385,6 +385,11 @@ public:
 	Table AddChildTable( bool add_back = true );
 
 	// NOTE : can not add/del sibling TCell directly, use Table add/del col, or use TCell VMerge/Span
+
+private:
+	friend class Table;
+	int set_vmerge_type( VMergeTypeE type );  // use for adjust sibling TCell VMergeType only, not for public use
+
 };
 
 ////////////////////////////////
