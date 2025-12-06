@@ -51,11 +51,11 @@ int Document::New()
 	m_files["word/_rels/document.xml.rels"].assign( s_word_rels, s_word_rels + strlen( s_word_rels ) + 1 );
 	m_files["word/theme/theme1.xml"].assign( s_word_theme, s_word_theme + strlen( s_word_theme ) + 1 );
 
-	int ret = SPD_ERR_ERROR;
-	if( ( ret = parse_files() ) != SPD_ERR_OK ) {
+	int ret = parse_files();
+	if( ret != SPD_ERR_OK ) {
 		Close();
 	}
-	return SPD_ERR_OK;
+	return ret;
 }
 
 int Document::read_zip( const std::string & fname, std::map< std::string, std::vector<char> > & files )
@@ -138,16 +138,16 @@ int Document::Open( const std::string & fname )
 {
 	Close();
 
-	int ret = SPD_ERR_ERROR;
-	if( ( ret = read_zip( fname, m_files ) ) < 0 )
+	int ret = read_zip( fname, m_files );
+	if( ret < 0 )
 		return ret;
-	if( ( ret = parse_files()) != SPD_ERR_OK ) {
+	ret = parse_files();
+	if( ret < 0 ) {
 		Close();
+		return ret;
 	}
-	else {
-		m_fname = fname;
-	}
-	return ret;
+	m_fname = fname;
+	return SPD_ERR_OK;
 }
 
 int Document::parse_files()
@@ -233,7 +233,7 @@ int Document::Close()
 	m_doc.reset();
 	m_style.clear();
 	m_rela.clear();
-	return 0;
+	return SPD_ERR_OK;
 }
 
 int Document::load_style()
@@ -378,14 +378,14 @@ int Document::DelChild( Element & child )
 {
 	pugi::xml_node parent = m_doc.document_element().first_child();
 	bool ret = parent.remove_child( child.m_nd );
-	return ret ? 0 : -1;
+	return ret ? SPD_ERR_OK : SPD_ERR_BAD_PARAM;
 }
 
 int Document::DelAllChild()
 {
 	pugi::xml_node parent = m_doc.document_element().first_child();
 	parent.remove_children();
-	return 0;
+	return SPD_ERR_OK;
 }
 
 const char * Document::GetStyleName( const char * id ) const
@@ -432,9 +432,9 @@ std::vector< const StyleLite*> Document::GetAllStyle() const
 int Document::AddStyle( const StyleLite & style )
 {
 	if( style.m_id.empty() )
-		return -1;
+		return SPD_ERR_BAD_PARAM;
 	m_style[style.m_id] = style;
-	return 0;
+	return SPD_ERR_OK;
 }
 
 const Relationship * Document::GetRelationship( const char * id ) const
@@ -458,9 +458,9 @@ std::vector< const Relationship* > Document::GetAllRelationship() const
 int Document::AddRelationship( const Relationship& rela )
 {
 	if( rela.m_id.empty() )
-		return -1;
+		return SPD_ERR_BAD_PARAM;
 	m_rela[rela.m_id] = rela;
-	return 0;
+	return SPD_ERR_OK;
 }
 
 int Document::write_style()
@@ -491,7 +491,7 @@ int Document::write_style()
 			Element::GetCreateAttr( cnd3, "w:numId" ).set_value( it.second.m_numId.c_str() );
 		}
 	}
-	return 0;
+	return SPD_ERR_OK;
 }
 
 int Document::write_rela()
@@ -518,7 +518,7 @@ int Document::write_rela()
 			Element::GetCreateAttr( nd, "TargetMode" ).set_value( it.second.m_targetMode.c_str() );
 		}
 	}
-	return 0;
+	return SPD_ERR_OK;
 }
 
 int Document::GetEmbedData( const std::string & id, std::vector<char> & data ) const
@@ -526,27 +526,27 @@ int Document::GetEmbedData( const std::string & id, std::vector<char> & data ) c
 	std::string name = std::string( "word/" ) + id;
 	auto it = m_files.find( name );
 	if( it == m_files.end() )
-		return -1;
+		return SPD_ERR_BAD_PARAM;
 	data.assign( it->second.begin(), it->second.end() );
-	return 0;
+	return SPD_ERR_OK;
 }
 
 int Document::SetEmbedData( const std::string & id, const std::vector<char> & data )
 {
 	if( id.empty() )
-		return -1;
+		return SPD_ERR_BAD_PARAM;
 	std::string name = std::string( "word/" ) + id;
 	m_files[name] = data;
-	return 0;
+	return SPD_ERR_OK;
 }
 
 int Document::SetEmbedData( const std::string & id, std::vector<char> && data )
 {
 	if( id.empty() )
-		return -1;
+		return SPD_ERR_BAD_PARAM;
 	std::string name = std::string( "word/" ) + id;
 	m_files[name] = std::move(data);
-	return 0;
+	return SPD_ERR_OK;
 
 }
 

@@ -91,9 +91,14 @@ SPD_API void SPD_PrintLog( int level, const char * file, int line, const char * 
 	return;
 }
 
-SPD_API int SPD_SetLogFuncLevel( SPD_LogFunc_t func, int level )
+SPD_API int SPD_SetLogFunc( SPD_LogFunc_t func )
 {
 	s_logfunc = ( func == nullptr ) ? spd_log_func_stderr : func;
+	return 0;
+}
+
+SPD_API int SPD_SetLogLevel(  int level )
+{
 	if( level <= SPD_LOG_LEVEL_DEBUG )
 		s_level = SPD_LOG_LEVEL_DEBUG;
 	else if( level <= SPD_LOG_LEVEL_INFO )

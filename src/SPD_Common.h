@@ -40,10 +40,15 @@ BEGIN_NS_SPD
 enum SPD_Error_t 
 {
 	SPD_ERR_OK = 0,
-	SPD_ERR_ERROR = -9000,
+	SPD_ERR_ERROR = -9000,		// common error
+	SPD_ERR_INTERNAL,			// internal error, xml library etc.
 	SPD_ERR_OPEN_ZIP,
 	SPD_ERR_OPEN_XML,
 	SPD_ERR_SAVE_ZIP,
+
+	SPD_ERR_BAD_PARAM,			// user provide function param invalid, such as col num < 0
+	SPD_ERR_FORBID_DEL_TCELL,	// when delete child, TCell can not be deleted.
+	SPD_ERR_BAD_MERGE_STATE,	// when modify vmerge or rowspan, the state is not correct
 
 	SPD_ERR_END
 };
@@ -76,7 +81,8 @@ typedef void ( *SPD_LogFunc_t )( const char * log_msg );
 
 // default function is log to stderr and default level is SPD_LOG_LEVEL_INFO
 // can set to custom function, set func to nullptr means restore to defalt stderr
-SPD_API int SPD_SetLogFuncLevel( SPD_LogFunc_t func, int level );
+SPD_API int SPD_SetLogFunc( SPD_LogFunc_t func );
+SPD_API int SPD_SetLogLevel( int level );
 
 SPD_API const char * SPD_GetLibVersion();
 

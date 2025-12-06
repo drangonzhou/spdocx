@@ -39,8 +39,6 @@ enum class ElementTypeE : uint8_t
 	TABLE_ROW,   // w:tr
 	TABLE_CELL,   // w:tc
 
-	// TODO : picture
-
 	SECTION,    // w:sectPr (top)
 
 	BOOKMARK_START,   // w:bookmarkStart
@@ -101,6 +99,7 @@ public:
 	Element GetPrev() const;
 	Element GetNext() const;
 	Element GetFirstChild() const;
+	Element GetLastChild() const;
 
 	Element GetPrev( ElementTypeE type ) const;
 	Element GetNext( ElementTypeE type ) const;
@@ -111,6 +110,9 @@ public:
 	inline ElementIterator end() const;
 	inline ElementRange Children() const;
 
+	// add child and add sibling need to define in each child type
+	
+	// delete child, except TRow can't delete TCell directly.
 	int DelChild( Element & child );
 	int DelAllChild();
 
@@ -298,6 +300,9 @@ public:
 // TODO : bookmark
 // TODO : comment
 
+class TRow;
+class TCell;
+
 class SPD_API Table : public Element
 {
 protected:
@@ -315,14 +320,14 @@ public:
 	std::vector<int> GetColWidth() const;
 	int GetColWidth( int idx ) const;  
 
+	int Reset(int row = 1, int col = 1); // row and col should >= 1, col should < 80;
+
 	// NOTE : child is Row, if set Col, update all child
 	int AddCol( int index ); // insert new column at index, index begin from 0
-	int DelCol( int index ); // del column at index
+	int DelCol( int index ); // del column at index, index begin from 0
 	int SetColWidth( const std::vector<int> widths ); // min col width is 100, usually shound not < 300
-	TRow AddChildTRow( bool add_back = true );
-	int Reset( int row = 1, int col = 1 ); // row and col should >= 1, col should < 80;
 
-	//
+	TRow AddChildTRow( bool add_back = true );
 	int DelRow( Element & row ); // del row, row must exist, need special handle of Cell with VMerge
 
 	// NOTE : sibling is Paragraph or Table
@@ -342,11 +347,14 @@ public:
 
 public:
 	int GetColNum() const { Table tb = Table( GetParent() ); return tb.GetColNum(); }
+	// get the TCell at col, col begin from 0
 	TCell GetCell( int col ) const;
-	TCell GetCell( int col, int & firstcol, int & span ) const;  // if this cell is span, spancol is the first col of span
+	TCell GetCell( int col, int & firstcol, int & span ) const;  // if this cell is span, spancol is the first col of span, and firstcol <= col < firstcol + span
 
 	// NOTE : child is Cell, but can not add/del directly, use Table AddCol/DelCol, or use TCell VMerge/Span
 	
+	int DelCell( Element & cell ) { return SPD_ERR_FORBID_DEL_TCELL; }
+
 	// NOTE : sibling is TRow
 	TRow AddSiblingTRow( bool add_next = true );
 };
@@ -373,7 +381,8 @@ public:
 	int GetCol() const;
 	int GetSpanNum() const;       // 1 means no span, has span should >= 1
 	VMergeTypeE GetVMergeType() const;
-	int GetVMergeNum() const;     // 1 means no vmerge, vmerge start should >= 1, not valid for vmerge cont return -1
+	TCell GetVMergeStartCell() const;
+	int GetVMergeNum() const;     // 1 means no vmerge, vmerge start / vmerge cont should > 1
 	std::string GetText() const;  // only paragraph, ignore table
 
 	// NOTE : modify Span/VMerge only can modify first Cell in Span/VMerge, and following cell should be no span/merge
@@ -387,9 +396,13 @@ public:
 	// NOTE : can not add/del sibling TCell directly, use Table add/del col, or use TCell VMerge/Span
 
 private:
+	int set_row_span( int num );
+	int insert_cell_after( int num );
+	bool check_cell_after( int num ) const;
+	int merge_cell_after( int num );
+
 	friend class Table;
 	int set_vmerge_type( VMergeTypeE type );  // use for adjust sibling TCell VMergeType only, not for public use
-
 };
 
 ////////////////////////////////

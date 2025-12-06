@@ -145,6 +145,16 @@ Element Element::GetFirstChild() const
 	return Element( nd );
 }
 
+Element Element::GetLastChild() const
+{
+	if( m_type == ElementTypeE::INVALID || m_type == ElementTypeE::UNKNOWN )
+		return Element();
+	pugi::xml_node nd = m_nd.last_child();
+	while( !nd.empty() && is_skipped_node( nd ) )
+		nd = nd.previous_sibling();
+	return Element( nd );
+}
+
 Element Element::GetPrev( ElementTypeE type ) const
 {
 	if( m_type == ElementTypeE::INVALID )
@@ -183,20 +193,20 @@ int Element::DelChild( Element & child )
 	}
 	// cell can not delete directly, use Table delete col, or use Cell span
 	if( m_type == ElementTypeE::TABLE_ROW )
-		return -1;
+		return SPD_ERR_FORBID_DEL_TCELL;
 
 	if( child.m_nd.parent() != m_nd )
-		return -1;
+		return SPD_ERR_BAD_PARAM;
 	bool ret = m_nd.remove_child( child.m_nd );
-	return ret ? 0 : -1;
+	return ret ? SPD_ERR_OK : SPD_ERR_INTERNAL;
 }
 
 int Element::DelAllChild()
 {
 	if( m_type == ElementTypeE::TABLE_ROW )  // table row can not delete cell directly
-		return -1;
+		return SPD_ERR_FORBID_DEL_TCELL;
 	m_nd.remove_children();
-	return 0;
+	return SPD_ERR_OK;
 }
 
 const char * Paragraph::GetStyleId() const
@@ -239,7 +249,7 @@ int Paragraph::SetStyleId( const char * id )
 		}
 		attr.set_value( id );
 	}
-	return 0;
+	return SPD_ERR_OK;
 }
 
 int Paragraph::SetStyleName( const char * name, const Document & doc )
@@ -264,7 +274,7 @@ int Paragraph::SetNumId( const char * id )
 		}
 		Element::GetCreateAttr( nd3, "w:val" ).set_value( id );
 	}
-	return 0;
+	return SPD_ERR_OK;
 }
 
 int Paragraph::SetNumLevel( int level )
@@ -285,7 +295,7 @@ int Paragraph::SetNumLevel( int level )
 		std::string lstr = std::to_string( level );
 		Element::GetCreateAttr( nd3, "w:val" ).set_value( lstr.c_str() );
 	}
-	return 0;
+	return SPD_ERR_OK;
 }
 
 std::string Paragraph::GetText() const
@@ -399,7 +409,7 @@ int Hyperlink::SetAnchor( const char * anchor )
 			attr = m_nd.append_attribute( "w:anchor" );
 		attr.set_value( anchor );
 	}
-	return 0;
+	return SPD_ERR_OK;
 }
 
 int Hyperlink::SetRelaId( const char * id )
@@ -414,7 +424,7 @@ int Hyperlink::SetRelaId( const char * id )
 			attr = m_nd.append_attribute( "r:id" );
 		attr.set_value( id );
 	}
-	return 0;
+	return SPD_ERR_OK;
 }
 
 Run Hyperlink::AddChildRun( bool add_back )
@@ -516,7 +526,7 @@ int Run::SetColor( const char * color )
 		pugi::xml_node nd2 = Element::GetCreateChild( nd, "w:color" );
 		Element::GetCreateAttr( nd2, "w:val" ).set_value( color );
 	}
-	return 0;
+	return SPD_ERR_OK;
 }
 
 int Run::SetHighline( const char * color )
@@ -536,7 +546,7 @@ int Run::SetHighline( const char * color )
 		pugi::xml_node nd2 = Element::GetCreateChild( nd, "w:highlight" );
 		Element::GetCreateAttr( nd2, "w:val" ).set_value( color );
 	}
-	return 0;
+	return SPD_ERR_OK;
 }
 
 int Run::SetBold( bool bold )
@@ -557,7 +567,7 @@ int Run::SetBold( bool bold )
 				m_nd.remove_child( nd );
 		}
 	}
-	return 0;
+	return SPD_ERR_OK;
 }
 
 int Run::SetItalic( bool italic )
@@ -578,7 +588,7 @@ int Run::SetItalic( bool italic )
 				m_nd.remove_child( nd );
 		}
 	}
-	return 0;
+	return SPD_ERR_OK;
 }
 
 int Run::SetUnderline( const char * underline )
@@ -598,7 +608,7 @@ int Run::SetUnderline( const char * underline )
 		pugi::xml_node nd2 = Element::GetCreateChild( nd, "w:u" );
 		Element::GetCreateAttr( nd2, "w:val" ).set_value( underline );
 	}
-	return 0;
+	return SPD_ERR_OK;
 }
 
 int Run::SetStrike( bool strike )
@@ -620,7 +630,7 @@ int Run::SetStrike( bool strike )
 				m_nd.remove_child( nd );
 		}
 	}
-	return 0;
+	return SPD_ERR_OK;
 }
 
 int Run::SetDoubleStrike( bool dstrike )
@@ -642,7 +652,7 @@ int Run::SetDoubleStrike( bool dstrike )
 				m_nd.remove_child( nd );
 		}
 	}
-	return 0;
+	return SPD_ERR_OK;
 }
 
 void Run::SetText( const char * text )
@@ -663,17 +673,17 @@ int  Run::GetPicData( const Document & doc, std::vector<char> & data ) const
 {
 	const char * picid = GetPicRelaId();
 	if( picid == nullptr || picid[0] == '\0' )
-		return -1;
+		return SPD_ERR_BAD_PARAM;
 	const Relationship * rela = doc.GetRelationship( picid );
 	if( rela == nullptr )
-		return -1;
+		return SPD_ERR_BAD_PARAM;
 	return doc.GetEmbedData( rela->m_target, data );
 }
 
 int Run::SetPic( const char * id )
 {
 	if( id == nullptr || id[0] == '\0' )
-		return -1;
+		return SPD_ERR_BAD_PARAM;
 	m_nd.remove_child( "w:text" );
 	m_nd.remove_child( "w:object" );
 	pugi::xml_node nd = Element::GetCreateChild( m_nd, "w:drawing" );
@@ -684,7 +694,7 @@ int Run::SetPic( const char * id )
 	nd = Element::GetCreateChild( nd, "pic:blipFill" );
 	nd = Element::GetCreateChild( nd, "a:blip" );
 	Element::GetCreateAttr( nd, "r:embed" ).set_value( id );
-	return 0;
+	return SPD_ERR_OK;
 }
 
 int Run::SetPic( const char * id, Document & doc, const std::vector<char> & data )
@@ -722,10 +732,10 @@ int Run::GetObjectData( const Document & doc, std::vector<char> & data ) const
 {
 	const char * picid = GetObjectRelaId();
 	if( picid == nullptr || picid[0] == '\0' )
-		return -1;
+		return SPD_ERR_BAD_PARAM;
 	const Relationship * rela = doc.GetRelationship( picid );
 	if( rela == nullptr )
-		return -1;
+		return SPD_ERR_BAD_PARAM;
 	return doc.GetEmbedData( rela->m_target, data );
 }
 
@@ -733,17 +743,17 @@ int Run::GetObjectImgData( const Document & doc, std::vector<char> & data ) cons
 {
 	const char * picid = GetObjectImgRelaId();
 	if( picid == nullptr || picid[0] == '\0' )
-		return -1;
+		return SPD_ERR_BAD_PARAM;
 	const Relationship * rela = doc.GetRelationship( picid );
 	if( rela == nullptr )
-		return -1;
+		return SPD_ERR_BAD_PARAM;
 	return doc.GetEmbedData( rela->m_target, data );
 }
 
 int Run::SetObject( const char * objid, const char * progid, const char * imgid )
 {
 	if( objid == nullptr || objid[0] == '\0' || progid == nullptr || progid[0] == '\0' || imgid == nullptr || imgid[0] == '\0' )
-		return -1;
+		return SPD_ERR_BAD_PARAM;
 	m_nd.remove_child( "w:text" );
 	m_nd.remove_child( "w:drawing" );
 	pugi::xml_node nd = Element::GetCreateChild( m_nd, "w:object" );
@@ -753,7 +763,7 @@ int Run::SetObject( const char * objid, const char * progid, const char * imgid 
 	nd2 = Element::GetCreateChild( nd, "v:shape" );
 	nd2 = Element::GetCreateChild( nd2, "v:imagedata" );
 	Element::GetCreateAttr( nd2, "r:id" ).set_value( imgid );
-	return 0;
+	return SPD_ERR_OK;
 }
 
 int Run::SetObject( const char * objid, const char * progid, const char * imgid, Document & doc, const std::vector<char> & objdata, const std::vector<char> & imgdata )
@@ -829,13 +839,13 @@ std::vector<int> Table::GetColWidth() const
 int Table::GetColWidth( int idx ) const
 {
 	if( idx < 0 )
-		return -1;
+		return SPD_ERR_BAD_PARAM;
 	pugi::xml_node pnd = m_nd.child( "w:tblGrid" );
 	int i;
 	for( i = 0, pnd = pnd.child( "w:gridCol" ); i < idx && !pnd.empty(); ++i, pnd = pnd.next_sibling( "w:gridCol" ) )
 		;
 	if( pnd.empty() )
-		return -1;
+		return SPD_ERR_BAD_PARAM;
 	return pnd.attribute( "w:w" ).as_int();
 }
 
@@ -843,7 +853,7 @@ int Table::AddCol( int index )
 {
 	int colnum = GetColNum();
 	if( index < 0 || index > colnum )
-		return -1;
+		return SPD_ERR_BAD_PARAM;
 
 	// update column size
 	std::vector<int> widths = GetColWidth();
@@ -897,7 +907,7 @@ int Table::AddCol( int index )
 			}
 		}
 	}
-	return 0;
+	return SPD_ERR_OK;
 }
 
 int Table::DelCol( int index )
@@ -905,7 +915,7 @@ int Table::DelCol( int index )
 	// only one column can not delete
 	int colnum = GetColNum();
 	if( index < 0 || index >= colnum || colnum == 1 )
-		return -1;
+		return SPD_ERR_BAD_PARAM;
 
 	// update column size
 	std::vector<int> widths = GetColWidth();
@@ -938,17 +948,17 @@ int Table::DelCol( int index )
 			pnd.attribute( "w:val" ) = span - 1;
 		}
 	}
-	return 0;
+	return SPD_ERR_OK;
 }
 
 int Table::SetColWidth( const std::vector<int> widths )
 {
 	int num = GetColNum();
 	if( (int)widths.size() != num )
-		return -1;
+		return SPD_ERR_BAD_PARAM;
 	for( auto & w : widths ) {
 		if( w < 100 )
-			return -1;
+			return SPD_ERR_BAD_PARAM;
 	}
 	pugi::xml_node pnd = m_nd.child( "w:tblGrid" );
 	int i;
@@ -960,13 +970,13 @@ int Table::SetColWidth( const std::vector<int> widths )
 		SPD_PR_DEBUG( "width num not match col num" );
 	}
 
-	return 0;
+	return SPD_ERR_OK;
 }
 
 int Table::Reset( int row, int col )
 {
 	if( row < 1 || col < 1 || col > 80 )
-		return -1;
+		return SPD_ERR_BAD_PARAM;
 	int i = 0;
 	pugi::xml_node pnd;
 	pnd = m_nd.child( "w:tblGrid" );
@@ -994,20 +1004,28 @@ int Table::Reset( int row, int col )
 			cnd.append_child( "w:tcPr" );
 		}
 	}
-	return 0;
+	return SPD_ERR_OK;
 }
 
 TRow Table::AddChildTRow( bool add_back )
 {
-	pugi::xml_node nd = add_back ? m_nd.append_child( "w:tr" ) : m_nd.prepend_child( "w:tr" );
-	return TRow( Element( nd ) );
+	if( add_back ) {
+		TRow row = GetLastChild();
+		return row.AddSiblingTRow( true );
+	}
+	else {
+		TRow row = GetFirstChild();
+		return row.AddSiblingTRow( false );
+	}
+	return TRow( Element() );  // never come here
 }
 
 int Table::DelRow( Element & row )
 {
 	if( row.m_nd.parent() != m_nd )
-		return -1;
+		return SPD_ERR_BAD_PARAM;
 
+	// adjust prev or next cell if VMerge, nothing to do if not VMerge
 	TRow curr_row( row );
 	Element child = curr_row.GetFirstChild();
 	int curr_col = 0;
@@ -1025,22 +1043,25 @@ int Table::DelRow( Element & row )
 					if( next_row2.IsValid() ) {
 						TCell next_cell2 = next_row2.GetCell( curr_col );
 						if( next_cell2.GetVMergeType() != VMergeTypeE::CONT ) {
+							// next next cell is not a continue cell, so next cell is the last cell, change to normal cell
 							next_cell1.set_vmerge_type( VMergeTypeE::NONE );
 						}
 						else {
+							// next next cell is a continue cell, change to start cell
 							next_cell1.set_vmerge_type( VMergeTypeE::START );
 						}
 					}
 					else {
+						// no next next cell, so next cell is the last cell, change to normal cell
 						next_cell1.set_vmerge_type( VMergeTypeE::NONE );
 					}
 				}
 				else {
-					// should not happend
+					// start cell's next cell is not cont cell, should not happend
 				}
 			}
 			else {
-				// should not happend
+				// start cell has no cont cell, should not happend
 			}
 		}
 		else if( vmt == VMergeTypeE::CONT ) {
@@ -1053,32 +1074,34 @@ int Table::DelRow( Element & row )
 					if( next_row1.IsValid() ) {
 						TCell next_cell1 = next_row1.GetCell( curr_col );
 						if( next_cell1.GetVMergeType() != VMergeTypeE::CONT ) {
+							// prev cell is start cell, next cell is not a continue cell, no continue cell, so change prev cell to normal cell
 							prev_cell1.set_vmerge_type( VMergeTypeE::NONE );
 						}
 						else {
-							// no need to do anything
+							// next cell is cont cell, so no need to do anything
 						}
 					}
 					else {
+						// no next cell,, so no continue cell, so change prev cell to normal cell
 						prev_cell1.set_vmerge_type( VMergeTypeE::NONE );
 					}
 				}
 				else if( type == VMergeTypeE::CONT ) {
-					// no need to do anything
+					// prev also cont cell, so no need to do anything
 				}
 				else {
-					// should not happend
+					// cont cell has not prev cell, should not happend
 				}
 			}
 			else {
-				// should not happend
+				// cont cell has no prev row, should not happend
 			}
-			break;
 		}
 		child = child.GetNext();
 		curr_col += span;
 	}
-	return m_nd.remove_child( row.m_nd );
+
+	return m_nd.remove_child( row.m_nd ) ? SPD_ERR_OK : SPD_ERR_INTERNAL;
 }
 
 Paragraph Table::AddSiblingParagraph( bool add_next )
@@ -1133,10 +1156,11 @@ TRow TRow::AddSiblingTRow( bool add_next )
 	pugi::xml_node nd = add_next ? m_nd.parent().insert_child_after( "w:tr", m_nd )
 		: m_nd.parent().insert_child_before( "w:tr", m_nd );
 	nd.append_child( "w:trPr" );
-	// add cell
+
+	// add cell, span as this row, vmerge cont when need
 	int col;
-	TCell cell = TCell( Element() );
-	for( cell = TCell( GetFirstChild() ), col = 0; cell.IsValid(); col += cell.GetSpanNum(), cell = TCell( cell.GetNext() ) )
+	TCell cell = TCell( GetFirstChild() );
+	for( /* cell , */ col = 0; cell.IsValid(); col += cell.GetSpanNum(), cell = TCell(cell.GetNext()) )
 	{
 		pugi::xml_node cnd = nd.append_child( "w:tc" );
 		pugi::xml_node tcpr = cnd.append_child( "w:tcPr" );
@@ -1199,13 +1223,43 @@ VMergeTypeE TCell::GetVMergeType() const
 		pugi::xml_attribute attr = pnd.attribute( "w:val" );
 		if( !attr.empty() && strcmp( attr.value(), "restart" ) == 0 )
 			vmerge_type = VMergeTypeE::START;
-		else
+		else if( !attr.empty() && strcmp( attr.value(), "continue" ) == 0 )
 			vmerge_type = VMergeTypeE::CONT;
+		else
+			vmerge_type = VMergeTypeE::INVALID;
 	}
 	else {
 		vmerge_type = VMergeTypeE::NONE;
 	}
 	return vmerge_type;
+}
+
+TCell TCell::GetVMergeStartCell() const
+{
+	VMergeTypeE vt = GetVMergeType();
+	if( vt == VMergeTypeE::NONE || vt == VMergeTypeE::START ) {
+		return TCell( *this );
+	}
+	int col = GetCol();
+	TRow row = GetParent();
+	while( row.IsValid() ) {
+		TRow prev_row = row.GetPrev();
+		if( !prev_row.IsValid() ) {
+			// should not happend, log it
+			return row.GetCell( col );
+		}
+		TCell prev_cell = prev_row.GetCell( col );
+		if( prev_cell.GetVMergeType() == VMergeTypeE::START ) {
+			return prev_cell;
+		}
+		if( prev_cell.GetVMergeType() != VMergeTypeE::CONT ) {
+			// should not happend, log it
+			return row.GetCell( col );
+		}
+		row = prev_row;
+	}
+	// if no start find, should not happend too, log it
+	return row.GetCell( col );
 }
 
 int TCell::GetVMergeNum() const
@@ -1214,24 +1268,43 @@ int TCell::GetVMergeNum() const
 	if( vt == VMergeTypeE::NONE ) {
 		return 1;
 	}
-	else if( vt == VMergeTypeE::CONT ) {
-		return -1;
-	}
-	else {
-		int col = GetCol();
-		int num = 1;
+	int col = GetCol();
+	int num = 0;
+	if ( vt == VMergeTypeE::CONT ) {
 		TRow row = GetParent();
-		TRow next_row = row.GetNext();
-		while( next_row.IsValid() ) {
-			TCell next_cell = next_row.GetCell( col );
-			if( next_cell.GetVMergeType() == VMergeTypeE::CONT )
+		TRow prev_row = row.GetPrev();
+		for ( ; prev_row.IsValid(); prev_row = prev_row.GetPrev() ) {
+			TCell prev_cell = prev_row.GetCell( col );
+			if ( prev_cell.GetVMergeType() == VMergeTypeE::CONT ) {
 				num += 1;
-			else
+			}
+			else if ( prev_cell.GetVMergeType() == VMergeTypeE::START ) {
+				num += 1;
 				break;
+			}
+			else {
+				// should not happend, log it
+				break;
+			}
 		}
-		return num;
+		// if no start find, should not happend too, log it
 	}
-	return -1; // never here
+
+	num += 1; // self
+
+	TRow row = GetParent();
+	TRow next_row = row.GetNext();
+	for( ; next_row.IsValid(); next_row = next_row.GetNext() ) {
+		TCell next_cell = next_row.GetCell( col );
+		if( next_cell.GetVMergeType() == VMergeTypeE::CONT ) {
+			num += 1;
+		} 
+		else {
+			break;
+		}
+	}
+
+	return num;
 }
 
 std::string TCell::GetText() const
@@ -1254,76 +1327,131 @@ std::string TCell::GetText() const
 	return text;
 }
 
+int TCell::set_row_span( int num )
+{
+	if( num == 1 ) {
+		m_nd.child( "w:tcPr" ).remove_child( "w:gridSpan" );
+	}
+	else if( num > 1 ) {
+		pugi::xml_node pnd = m_nd.child( "w:tcPr" ).child( "w:gridSpan" );
+		pnd.attribute( "w:val" ) = num;
+	}
+	else {
+		return SPD_ERR_BAD_PARAM;
+	}
+	return SPD_ERR_OK;
+}
+
+int TCell::insert_cell_after( int num )
+{
+	if( num <= 0 )
+		return SPD_ERR_BAD_PARAM;
+	pugi::xml_node parent = m_nd.parent();
+	pugi::xml_node last_nd = m_nd;
+	for( int i = 0; i < num; ++i ) {
+		pugi::xml_node nnd = parent.insert_child_after( "w:tc", last_nd );
+		nnd.append_child( "w:tcPr" );
+		last_nd = nnd;
+	}
+	return SPD_ERR_OK;
+}
+
+bool TCell::check_cell_after( int num ) const
+{
+	// check following num cell is no span or vmerge
+	int i;
+	for( i = 0; i < num; ++i ) {
+		TCell cell = GetNext();
+		if( !cell.IsValid() )
+			return false;
+		if( cell.GetSpanNum() > 1 )
+			return false;
+		if( cell.GetVMergeType() != VMergeTypeE::NONE )
+			return false;
+	}
+	return true;
+}
+
+int TCell::merge_cell_after( int num )
+{
+	// must already check, follwing cell is valid
+	pugi::xml_node parent = m_nd.parent();
+	int i;
+	for( i = 0; i < num; ++i ) {
+		parent.remove_child( m_nd.next_sibling() );
+	}
+	return SPD_ERR_OK;
+}
+
 int TCell::SetSpanNum( int num )
 {
 	if( num < 1 )
-		return -1;
+		return SPD_ERR_BAD_PARAM;
 	if( GetVMergeType() == VMergeTypeE::CONT )
-		return -1;
+		return SPD_ERR_BAD_PARAM;
 	int old_num = GetSpanNum();
 	if( num == old_num ) {
-		return 0;
+		return SPD_ERR_OK;
 	}
 	else if( num < old_num ) {
-		if( num == 1 ) {
-			m_nd.child( "w:tcPr" ).remove_child( "w:gridSpan" );
+		set_row_span( num );
+		insert_cell_after( old_num - num );
+		if( GetVMergeType() == VMergeTypeE::START ) { 
+			// for following vmerge cell, set new rowspan and insert cell
+			int col = GetCol();
+			TRow next_row = GetParent().GetNext();
+			for( /* next_row */; next_row.IsValid(); next_row = next_row.GetNext() ) {
+				TCell next_cell = next_row.GetCell( col );
+				if( !next_cell.IsValid() ) {
+					break; // should not happend, log it
+				}
+				if( next_cell.GetVMergeType() != VMergeTypeE::CONT ) {
+					break;
+				}
+				next_cell.set_row_span( num );
+				next_cell.insert_cell_after( old_num - num );
+			}
 		}
-		else {
-			pugi::xml_node pnd = m_nd.child( "w:tcPr" ).child( "w:gridSpan" );
-			pnd.attribute( "w:val" ) = num;
-		}
-		pugi::xml_node parent = m_nd.parent();
-		pugi::xml_node last_nd = m_nd;
-		for( int i = num; i < old_num; ++i ) {
-			pugi::xml_node nnd = parent.insert_child_after( "w:tc", last_nd );
-			nnd.append_child( "w:tcPr" );
-			last_nd = nnd;
-		}
-		// TODO : if VMergeTypeE::START, also set following Vmerge Cell
 	}
 	else {
-		// merge node to this
+		// merge node to this, the following cell must no span or vmerge
 		int merge_num = num - old_num;
-		std::vector< pugi::xml_node > merge_nds;
-		merge_nds.resize( merge_num );
-		pugi::xml_node last_nd = m_nd;
-		int find_num = 0;
-		while( 1 ) {
-			pugi::xml_node nnd = last_nd.next_sibling();
-			if( nnd.empty() )
-				break;
-			if( strcmp( nnd.name(), "w:tc" ) != 0 ) {
-				last_nd = nnd;
-				continue;
+		if( !check_cell_after( merge_num ) )
+			return SPD_ERR_BAD_MERGE_STATE;
+		if( GetVMergeType() == VMergeTypeE::START ) {
+			int col = GetCol();
+			TRow next_row = GetParent().GetNext();
+			for( /* next_row */; next_row.IsValid(); next_row = next_row.GetNext() ) {
+				TCell next_cell = next_row.GetCell( col );
+				if( !next_cell.IsValid() ) {
+					break; // should not happend, log it
+				}
+				if( next_cell.GetVMergeType() != VMergeTypeE::CONT ) {
+					break;
+				}
+				if( ! next_cell.check_cell_after( merge_num ) )
+					return SPD_ERR_BAD_MERGE_STATE;
 			}
-			merge_nds[find_num++] = nnd;
-			last_nd = nnd;
-			if( find_num == merge_num )
-				break;
 		}
-		if( find_num != merge_num )
-			return -1;
-
-		// set current node gridSpan, merge other cell to this
-		pugi::xml_node pnd = m_nd.child( "w:tcPr" ).child( "w:gridSpan" );
-		if( pnd.empty() ) {
-			pnd = m_nd.child( "w:tcPr" ).append_child( "w:gridSpan" );
-		}
-		pnd.attribute( "w:val" ) = num;
-		for( int i = 0; i < merge_num; ++i ) {
-			pnd = merge_nds[i];
-			pugi::xml_node cnd = pnd.first_child();
-			while( !cnd.empty() ) {
-				pugi::xml_node next = cnd.next_sibling();
-				if( strcmp( cnd.name(), "w:p" ) == 0 || strcmp( cnd.name(), "w:tbl" ) == 0 )
-					m_nd.append_move( cnd );
-				cnd = next;
+		set_row_span( num );
+		merge_cell_after( merge_num );
+		if( GetVMergeType() == VMergeTypeE::START ) {
+			int col = GetCol();
+			TRow next_row = GetParent().GetNext();
+			for( /* next_row */; next_row.IsValid(); next_row = next_row.GetNext() ) {
+				TCell next_cell = next_row.GetCell( col );
+				if( !next_cell.IsValid() ) {
+					break; // should not happend, log it
+				}
+				if( next_cell.GetVMergeType() != VMergeTypeE::CONT ) {
+					break;
+				}
+				next_cell.set_row_span( num );
+				next_cell.merge_cell_after( merge_num );
 			}
-			m_nd.parent().remove_child( pnd );
 		}
-		// TODO : if VMergeTypeE::START, also set following Vmerge Cell
 	}
-	return 0; 
+	return SPD_ERR_OK;
 }
 
 int TCell::set_vmerge_type( VMergeTypeE type )
@@ -1345,16 +1473,67 @@ int TCell::set_vmerge_type( VMergeTypeE type )
 		Element::GetCreateAttr( pnd, "w:val" ).set_value( "continue" );
 	}
 	else {
-		return -1;
+		return SPD_ERR_BAD_MERGE_STATE;
 	}
-	return 0;
+	return SPD_ERR_OK;
 }
 
 int TCell::SetVMergeNum( int num )
 {
-	// TODO : need to check following row enough or not
-	// TODO : need to deal with span in following row
-	return -1;
+	if( num < 1 )
+		return SPD_ERR_BAD_PARAM;
+	if( GetVMergeType() == VMergeTypeE::CONT )
+		return SPD_ERR_BAD_PARAM;
+	int old_num = GetVMergeNum();
+	if( num == old_num ) {
+		return SPD_ERR_OK;
+	}
+	else if( num < old_num ) {
+		if( num == 1 ) {
+			set_vmerge_type( VMergeTypeE::NONE );
+		}
+		// NOTE : all row is valid, GetVMergeNum() has confirmed it
+		TRow row = GetParent();
+		int i = 0;
+		for( i = 0; i < num; ++i, row = row.GetNext() ) {
+			// do nothing, just find next_row
+		}
+		for( i = num; i < old_num; ++i, row = row.GetNext() ) {
+			TCell next_cell = row.GetCell( GetCol() );
+			if( !next_cell.IsValid() ) {
+				break; // should not happend, log it
+			}
+			next_cell.set_vmerge_type( VMergeTypeE::NONE );
+		}
+	}
+	else {
+		// add more cell, but following cell should all be VMergeTypeE::NONE and same span
+		int curr_col = GetCol();
+		int curr_span = GetSpanNum();
+		TRow row = GetParent();
+		int i = 0;
+		for( i = 0; i < old_num; ++i, row = row.GetNext() ) {
+			// do nothing, just find next_row
+		}
+		TRow bak_row = row;
+		for( i = old_num; i < num; ++i, row = row.GetNext() ) {
+			if( !row.IsValid() ) {
+				return SPD_ERR_BAD_MERGE_STATE; // row not enough
+			}
+			int tmp_col = 0, tmp_span = 0;
+			TCell next_cell = row.GetCell( curr_col, tmp_col, tmp_span );
+			if( tmp_col != curr_col || tmp_span != curr_span || (!next_cell.IsValid()) || next_cell.GetVMergeType() != VMergeTypeE::NONE ) {
+				return SPD_ERR_BAD_MERGE_STATE; // not valid
+			}
+		}
+		row = bak_row;
+		for( i = old_num; i < num; ++i, row = row.GetNext() ) {
+			TCell next_cell = row.GetCell( curr_col );
+			next_cell.set_vmerge_type( VMergeTypeE::CONT );
+		}
+	}
+
+	return SPD_ERR_OK;
 }
 
 Paragraph TCell::AddChildParagraph( bool add_back )
