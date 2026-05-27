@@ -429,6 +429,314 @@ static int t_table()
 	return 0;
 }
 
+static int t_table_2()
+{
+	int ret;
+	const char * fname = "_test_table2.docx";
+
+	// 1. create doc with table that has existing merges
+	{
+		Document doc;
+		doc.New();
+
+		// clear auto-created paragraph
+		doc.GetFirstElement().DelAllChild();
+
+		// add a 6x6 table
+		Table tbl = doc.AddChildTable();
+		if( !tbl.IsValid() ) {
+			printf( "t_table_2: AddChildTable FAILED!\n" );
+			return -1;
+		}
+		ret = tbl.Reset( 6, 6 );
+		if( ret < 0 ) {
+			printf( "t_table_2: Reset FAILED ret=%d\n", ret );
+			return -1;
+		}
+
+		// fill each cell with text label
+		int ri = 0;
+		for( TRow row = tbl.GetFirstChild(); row.IsValid(); row = row.GetNext(), ++ri )
+		{
+			for( TCell cell = row.GetFirstChild(); cell.IsValid(); cell = cell.GetNext() )
+			{
+				if( cell.GetType() == ElementTypeE::TABLE_CELL )
+				{
+					Paragraph p = cell.AddChildParagraph();
+					Run r = p.AddChildRun();
+					char buf[64];
+					snprintf( buf, sizeof(buf), "R%dC%d", ri, cell.GetCol() );
+					r.SetText( buf );
+				}
+			}
+		}
+
+		// --- initial merges ---
+
+		// 1) horizontal merge: row0 col1~col2 -> span 2
+		{
+			TRow row0 = tbl.GetFirstChild();
+			TCell cell = row0.GetCell( 1 );
+			ret = cell.SetSpanNum( 2 );
+			if( ret < 0 ) {
+				printf( "t_table_2: init SetSpanNum(2) FAILED ret=%d\n", ret );
+				return -1;
+			}
+		}
+
+		// 2) vertical merge: row1~row3 col0 -> vmerge 3
+		{
+			TRow row0 = tbl.GetFirstChild();
+			TRow row1 = row0.GetNext();
+			TCell cell = row1.GetCell( 0 );
+			ret = cell.SetVMergeNum( 3 );
+			if( ret < 0 ) {
+				printf( "t_table_2: init SetVMergeNum(3) FAILED ret=%d\n", ret );
+				return -1;
+			}
+		}
+
+		// 3) horizontal merge: row2 col2~col4 -> span 3
+		{
+			TRow row0 = tbl.GetFirstChild();
+			TRow row1 = row0.GetNext();
+			TRow row2 = row1.GetNext();
+			TCell cell = row2.GetCell( 2 );
+			ret = cell.SetSpanNum( 3 );
+			if( ret < 0 ) {
+				printf( "t_table_2: init SetSpanNum(3) FAILED ret=%d\n", ret );
+				return -1;
+			}
+		}
+
+		// 4) vertical merge: row2~row4 col5 -> vmerge 3 (enough room to increase to 4)
+		{
+			TRow row0 = tbl.GetFirstChild();
+			TRow row2 = row0.GetNext().GetNext();
+			TCell cell = row2.GetCell( 5 );
+			ret = cell.SetVMergeNum( 3 );
+			if( ret < 0 ) {
+				printf( "t_table_2: init SetVMergeNum(3) FAILED ret=%d\n", ret );
+				return -1;
+			}
+		}
+
+		// --- NOW MODIFY the merges ---
+
+		// A) Remove horizontal merge: row0 col1 span 2 -> 1
+		{
+			TRow row0 = tbl.GetFirstChild();
+			TCell cell = row0.GetCell( 1 );
+			ret = cell.SetSpanNum( 1 );
+			if( ret < 0 ) {
+				printf( "t_table_2: A) SetSpanNum(1) to remove merge FAILED ret=%d\n", ret );
+				return -1;
+			}
+		}
+
+		// B) Remove vertical merge: row1 col0 vmerge 3 -> 1
+		{
+			TRow row0 = tbl.GetFirstChild();
+			TRow row1 = row0.GetNext();
+			TCell cell = row1.GetCell( 0 );
+			ret = cell.SetVMergeNum( 1 );
+			if( ret < 0 ) {
+				printf( "t_table_2: B) SetVMergeNum(1) to remove merge FAILED ret=%d\n", ret );
+				return -1;
+			}
+		}
+
+		// C) Add horizontal merge on a normal cell: row3 col0 -> span 2
+		{
+			TRow row0 = tbl.GetFirstChild();
+			TRow row3 = row0.GetNext().GetNext().GetNext();
+			TCell cell = row3.GetCell( 0 );
+			ret = cell.SetSpanNum( 2 );
+			if( ret < 0 ) {
+				printf( "t_table_2: C) SetSpanNum(2) to add merge FAILED ret=%d\n", ret );
+				return -1;
+			}
+		}
+
+		// D) Remove horizontal merge on previously span=3 cell: row2 col2 span 3 -> 1
+		{
+			TRow row0 = tbl.GetFirstChild();
+			TRow row2 = row0.GetNext().GetNext();
+			TCell cell = row2.GetCell( 2 );
+			ret = cell.SetSpanNum( 1 );
+			if( ret < 0 ) {
+				printf( "t_table_2: D) SetSpanNum(1) to remove span FAILED ret=%d\n", ret );
+				return -1;
+			}
+		}
+
+		// E) Increase vertical merge: row2 col5 vmerge 3 -> 4 (row5 exists, enough room)
+		{
+			TRow row0 = tbl.GetFirstChild();
+			TRow row2 = row0.GetNext().GetNext();
+			TCell cell = row2.GetCell( 5 );
+			ret = cell.SetVMergeNum( 4 );
+			if( ret < 0 ) {
+				printf( "t_table_2: E) SetVMergeNum(4) to increase vmerge FAILED ret=%d\n", ret );
+				return -1;
+			}
+		}
+
+		// F) Add vertical merge on a fresh cell: row0 col5 -> vmerge 2
+		{
+			TRow row0 = tbl.GetFirstChild();
+			TCell cell = row0.GetCell( 5 );
+			ret = cell.SetVMergeNum( 2 );
+			if( ret < 0 ) {
+				printf( "t_table_2: F) SetVMergeNum(2) to add vmerge FAILED ret=%d\n", ret );
+				return -1;
+			}
+		}
+
+		ret = doc.Save( fname );
+		doc.Close();
+		printf( "t_table_2: saved [%s] ret=%d\n", fname, ret );
+	}
+
+	// 2. read back and verify
+	{
+		Document doc;
+		ret = doc.Open( fname );
+		if( ret < 0 )
+		{
+			printf( "t_table_2: open [%s] FAILED ret=%d\n", fname, ret );
+			return -1;
+		}
+
+		Table tbl = Element();
+		for( Element ele = doc.GetFirstElement(); ele.IsValid(); ele = ele.GetNext() )
+		{
+			if( ele.GetType() == ElementTypeE::TABLE )
+			{
+				tbl = Table( ele );
+				break;
+			}
+		}
+		if( !tbl.IsValid() )
+		{
+			printf( "t_table_2: first element is not TABLE, type=%d\n", (int)tbl.GetType() );
+			return -1;
+		}
+
+		printf( "t_table_2: table %dx%d\n", tbl.GetRowNum(), tbl.GetColNum() );
+
+		int err = 0;
+
+		// verify A: row0 col1 span should be 1 (was 2, removed)
+		{
+			TRow row0 = tbl.GetFirstChild();
+			TCell cell = row0.GetCell( 1 );
+			if( !cell.IsValid() ) {
+				printf( "t_table_2: A verify GetCell(1) FAILED!\n" );
+				err++;
+			} else {
+				int span = cell.GetSpanNum();
+				printf( "t_table_2: A) row0 col1 span=%d (expected 1, removed)\n", span );
+				if( span != 1 ) err++;
+			}
+		}
+
+		// verify B: row1 col0 vmerge should be NONE/1 (was 3, removed)
+		{
+			TRow row0 = tbl.GetFirstChild();
+			TRow row1 = row0.GetNext();
+			TCell cell = row1.GetCell( 0 );
+			if( !cell.IsValid() ) {
+				printf( "t_table_2: B verify GetCell(0) FAILED!\n" );
+				err++;
+			} else {
+				int vnum = cell.GetVMergeNum();
+				VMergeTypeE vt = cell.GetVMergeType();
+				printf( "t_table_2: B) row1 col0 vmergeNum=%d type=%d (expected 1, NONE)\n", vnum, (int)vt );
+				if( vnum != 1 || vt != VMergeTypeE::NONE ) err++;
+			}
+		}
+
+		// verify C: row3 col0 span should be 2 (newly added)
+		{
+			TRow row0 = tbl.GetFirstChild();
+			TRow row3 = row0.GetNext().GetNext().GetNext();
+			TCell cell = row3.GetCell( 0 );
+			if( !cell.IsValid() ) {
+				printf( "t_table_2: C verify GetCell(0) FAILED!\n" );
+				err++;
+			} else {
+				int span = cell.GetSpanNum();
+				printf( "t_table_2: C) row3 col0 span=%d (expected 2, newly added)\n", span );
+				if( span != 2 ) err++;
+			}
+		}
+
+		// verify D: row2 col2 span should be 1 (was 3, removed)
+		{
+			TRow row0 = tbl.GetFirstChild();
+			TRow row2 = row0.GetNext().GetNext();
+			TCell cell = row2.GetCell( 2 );
+			if( !cell.IsValid() ) {
+				printf( "t_table_2: D verify GetCell(2) FAILED!\n" );
+				err++;
+			} else {
+				int span = cell.GetSpanNum();
+				printf( "t_table_2: D) row2 col2 span=%d (expected 1, removed)\n", span );
+				if( span != 1 ) err++;
+			}
+		}
+
+		// verify E: row2 col5 vmerge should be START num=4 (was 3, increased to 4)
+		{
+			TRow row0 = tbl.GetFirstChild();
+			TRow row2 = row0.GetNext().GetNext();
+			TCell cell = row2.GetCell( 5 );
+			if( !cell.IsValid() ) {
+				printf( "t_table_2: E verify GetCell(5) FAILED!\n" );
+				err++;
+			} else {
+				int vnum = cell.GetVMergeNum();
+				VMergeTypeE vt = cell.GetVMergeType();
+				printf( "t_table_2: E) row2 col5 vmergeNum=%d type=%d (expected 4, START)\n", vnum, (int)vt );
+				if( vnum != 4 || vt != VMergeTypeE::START ) err++;
+			}
+		}
+
+		// verify F: row0 col5 vmerge should be START num=2 (newly added)
+		{
+			TRow row0 = tbl.GetFirstChild();
+			TCell cell = row0.GetCell( 5 );
+			if( !cell.IsValid() ) {
+				printf( "t_table_2: F verify GetCell(5) FAILED!\n" );
+				err++;
+			} else {
+				int vnum = cell.GetVMergeNum();
+				VMergeTypeE vt = cell.GetVMergeType();
+				printf( "t_table_2: F) row0 col5 vmergeNum=%d type=%d (expected 2, START)\n", vnum, (int)vt );
+				if( vnum != 2 || vt != VMergeTypeE::START ) err++;
+			}
+		}
+
+		doc.Close();
+
+		if( err > 0 )
+		{
+			printf( "t_table_2: VERIFY FAILED with %d error(s)!\n", err );
+		}
+		else
+		{
+			printf( "t_table_2: VERIFY OK!\n" );
+		}
+	}
+
+	// 3. delete test file
+	remove( fname );
+	printf( "t_table_2: deleted [%s]\n", fname );
+
+	return 0;
+}
+
 static int conv( const char * fname )
 {
 	// read file to char string
@@ -485,6 +793,7 @@ static int usage()
   newdoc              : create new docx 
   conv                : conv file to char string
   t_table             : test table create/merge/verify
+  t_table_2           : test table merge modification (remove/increase/add)
 )" );
 	return 0;
 }
@@ -515,6 +824,9 @@ int main( int argc, char * argv[] )
 	}
 	else if( strcmp( argv[1], "t_table" ) == 0 ) {
 		t_table();
+	}
+	else if( strcmp( argv[1], "t_table_2" ) == 0 ) {
+		t_table_2();
 	}
 	else {
 		printf( "[ERR] unknown cmd or bad params\n" );
