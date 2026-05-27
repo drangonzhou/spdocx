@@ -1333,8 +1333,9 @@ int TCell::set_row_span( int num )
 		m_nd.child( "w:tcPr" ).remove_child( "w:gridSpan" );
 	}
 	else if( num > 1 ) {
-		pugi::xml_node pnd = m_nd.child( "w:tcPr" ).child( "w:gridSpan" );
-		pnd.attribute( "w:val" ) = num;
+		pugi::xml_node tcpr = Element::GetCreateChild( m_nd, "w:tcPr" );
+		pugi::xml_node pnd = Element::GetCreateChild( tcpr, "w:gridSpan" );
+		Element::GetCreateAttr( pnd, "w:val" ).set_value( num );
 	}
 	else {
 		return SPD_ERR_BAD_PARAM;
@@ -1525,6 +1526,10 @@ int TCell::SetVMergeNum( int num )
 			if( tmp_col != curr_col || tmp_span != curr_span || (!next_cell.IsValid()) || next_cell.GetVMergeType() != VMergeTypeE::NONE ) {
 				return SPD_ERR_BAD_MERGE_STATE; // not valid
 			}
+		}
+		// set START on current cell if it was NONE (old_num == 1)
+		if( old_num == 1 ) {
+			set_vmerge_type( VMergeTypeE::START );
 		}
 		row = bak_row;
 		for( i = old_num; i < num; ++i, row = row.GetNext() ) {

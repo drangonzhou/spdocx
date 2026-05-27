@@ -1,4 +1,4 @@
-﻿// spdocxutil.cpp : spdocx util
+// spdocxutil.cpp : spdocx util
 // Copyright (C) 2021 ~ 2021 drangon <drangon_zhou (at) hotmail.com>
 //
 // This program is free software: you can redistribute it and/or modify it
@@ -235,6 +235,200 @@ static int newdoc( const char * fname )
 	return 0;
 }
 
+static int t_table()
+{
+	int ret;
+	const char * fname = "_test_table.docx";
+
+	// 1. create doc with table
+	{
+		Document doc;
+		doc.New();
+
+		// clear auto-created paragraph
+		doc.GetFirstElement().DelAllChild();
+
+		// add a 5x5 table
+		Table tbl = doc.AddChildTable();
+		if( !tbl.IsValid() ) {
+			printf( "t_table: AddChildTable FAILED!\n" );
+			return -1;
+		}
+		ret = tbl.Reset( 5, 5 );
+		if( ret < 0 ) {
+			printf( "t_table: Reset FAILED ret=%d\n", ret );
+			return -1;
+		}
+
+		// fill each cell with text label [row, col]
+		int ri = 0;
+		for( TRow row = tbl.GetFirstChild(); row.IsValid(); row = row.GetNext(), ++ri )
+		{
+			for( TCell cell = row.GetFirstChild(); cell.IsValid(); cell = cell.GetNext() )
+			{
+				if( cell.GetType() == ElementTypeE::TABLE_CELL )
+				{
+					Paragraph p = cell.AddChildParagraph();
+					Run r = p.AddChildRun();
+					char buf[64];
+					snprintf( buf, sizeof(buf), "R%dC%d", ri, cell.GetCol() );
+					r.SetText( buf );
+				}
+			}
+		}
+
+		// horizontal merge (span): merge row 0, col 1 and col 2 (col 1 span 2)
+		{
+			TRow row0 = tbl.GetFirstChild();
+			if( !row0.IsValid() ) {
+				printf( "t_table: GetFirstChild row0 FAILED!\n" );
+				return -1;
+			}
+			TCell cell = row0.GetCell( 1 );
+			if( !cell.IsValid() ) {
+				printf( "t_table: GetCell(1) FAILED!\n" );
+				return -1;
+			}
+			ret = cell.SetSpanNum( 2 );
+			if( ret < 0 ) {
+				printf( "t_table: SetSpanNum FAILED ret=%d\n", ret );
+				return -1;
+			}
+		}
+
+		// vertical merge (vmerge): merge row 1 col 0, row 2 col 0, row 3 col 0 (cell row1 col0 becomes VMerge START spanning 3)
+		{
+			TRow row0 = tbl.GetFirstChild();
+			TRow row1 = row0.GetNext();
+			if( !row1.IsValid() ) {
+				printf( "t_table: GetNext row1 FAILED!\n" );
+				return -1;
+			}
+			TCell cell = row1.GetCell( 0 );
+			if( !cell.IsValid() ) {
+				printf( "t_table: GetCell(0) for vmerge FAILED!\n" );
+				return -1;
+			}
+			ret = cell.SetVMergeNum( 3 );
+			if( ret < 0 ) {
+				printf( "t_table: SetVMergeNum FAILED ret=%d\n", ret );
+				return -1;
+			}
+		}
+
+		ret = doc.Save( fname );
+		doc.Close();
+		printf( "t_table: saved [%s] ret=%d\n", fname, ret );
+	}
+
+	// 2. read back and verify
+	{
+		Document doc;
+		ret = doc.Open( fname );
+		if( ret < 0 )
+		{
+			printf( "t_table: open [%s] FAILED ret=%d\n", fname, ret );
+			return -1;
+		}
+
+		Table tbl = Element(); // default-construct Element then convert to Table
+		for( Element ele = doc.GetFirstElement(); ele.IsValid(); ele = ele.GetNext() )
+		{
+			if( ele.GetType() == ElementTypeE::TABLE )
+			{
+				tbl = Table( ele );
+				break;
+			}
+		}
+		if( !tbl.IsValid() )
+		{
+			printf( "t_table: first element is not TABLE, type=%d\n", (int)tbl.GetType() );
+			return -1;
+		}
+
+		printf( "t_table: table %dx%d\n", tbl.GetRowNum(), tbl.GetColNum() );
+		if( tbl.GetRowNum() < 4 || tbl.GetColNum() < 5 ) {
+			printf( "t_table: table too small (%dx%d), expected at least 4x5\n",
+				tbl.GetRowNum(), tbl.GetColNum() );
+			return -1;
+		}
+
+		int err = 0;
+
+		// verify horizontal merge: row 0, col 1 should have span 2
+		{
+			TRow row0 = tbl.GetFirstChild();
+			TCell cell = row0.GetCell( 1 );
+			if( !cell.IsValid() ) {
+				printf( "t_table: verify GetCell(1) FAILED!\n" );
+				return -1;
+			}
+			int span = cell.GetSpanNum();
+			printf( "t_table: row0 col1 span=%d (expected 2)\n", span );
+			if( span != 2 ) err++;
+		}
+
+		// verify vertical merge: row 1 col 0 should be VMerge START with num 3
+		// row 2 col 0 should be VMerge CONT
+		// row 3 col 0 should be VMerge CONT
+		{
+			TRow row0 = tbl.GetFirstChild();
+			TRow row1 = row0.GetNext();
+			if( !row1.IsValid() ) {
+				printf( "t_table: verify row1 FAILED!\n" );
+				return -1;
+			}
+			TRow row2 = row1.GetNext();
+			if( !row2.IsValid() ) {
+				printf( "t_table: verify row2 FAILED!\n" );
+				return -1;
+			}
+			TRow row3 = row2.GetNext();
+			if( !row3.IsValid() ) {
+				printf( "t_table: verify row3 FAILED!\n" );
+				return -1;
+			}
+
+			TCell c1 = row1.GetCell( 0 );
+			TCell c2 = row2.GetCell( 0 );
+			TCell c3 = row3.GetCell( 0 );
+			if( !c1.IsValid() || !c2.IsValid() || !c3.IsValid() ) {
+				printf( "t_table: verify GetCell for vmerge FAILED!\n" );
+				return -1;
+			}
+
+			int vnum1 = c1.GetVMergeNum();
+			VMergeTypeE vt1 = c1.GetVMergeType();
+			VMergeTypeE vt2 = c2.GetVMergeType();
+			VMergeTypeE vt3 = c3.GetVMergeType();
+
+			printf( "t_table: row1 col0 vmergeNum=%d type=%d (expected 3, START=%d)\n", vnum1, (int)vt1, (int)VMergeTypeE::START );
+			printf( "t_table: row2 col0 vmergeType=%d (expected CONT=%d)\n", (int)vt2, (int)VMergeTypeE::CONT );
+			printf( "t_table: row3 col0 vmergeType=%d (expected CONT=%d)\n", (int)vt3, (int)VMergeTypeE::CONT );
+
+			if( vnum1 != 3 || vt1 != VMergeTypeE::START || vt2 != VMergeTypeE::CONT || vt3 != VMergeTypeE::CONT )
+				err++;
+		}
+
+		doc.Close();
+
+		if( err > 0 )
+		{
+			printf( "t_table: VERIFY FAILED with %d error(s)!\n", err );
+		}
+		else
+		{
+			printf( "t_table: VERIFY OK!\n" );
+		}
+	}
+
+	// 3. delete test file
+	remove( fname );
+	printf( "t_table: deleted [%s]\n", fname );
+
+	return 0;
+}
+
 static int conv( const char * fname )
 {
 	// read file to char string
@@ -290,6 +484,7 @@ static int usage()
   dumpdirjson         : dump docx dir in json
   newdoc              : create new docx 
   conv                : conv file to char string
+  t_table             : test table create/merge/verify
 )" );
 	return 0;
 }
@@ -301,7 +496,7 @@ int main( int argc, char * argv[] )
 		return -1;
 	}
 
-	spd::SPD_SetLogFuncLevel( nullptr, SPD_LOG_LEVEL_DEBUG );
+	spd::SPD_SetLogLevel( SPD_LOG_LEVEL_DEBUG );
 	SPD_PR_INFO( "hello %d", 5 );
 
 	if( strcmp( argv[1], "dumpinfo" ) == 0 && argc >= 3 ) {
@@ -317,6 +512,9 @@ int main( int argc, char * argv[] )
 	}
 	else if( strcmp( argv[1], "conv" ) == 0 && argc >= 3 ) {
 		conv( argv[2] );
+	}
+	else if( strcmp( argv[1], "t_table" ) == 0 ) {
+		t_table();
 	}
 	else {
 		printf( "[ERR] unknown cmd or bad params\n" );
